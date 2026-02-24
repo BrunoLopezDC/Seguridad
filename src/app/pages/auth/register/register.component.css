@@ -1,14 +1,15 @@
 :host {
   display: block;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .register-wrapper {
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  padding: 2rem 1rem;
 }
 
 .register-card {
@@ -16,13 +17,13 @@
   border-radius: 1.25rem;
   padding: 3rem 2.5rem;
   width: 100%;
-  max-width: 420px;
+  max-width: 450px;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .register-header h1 {
@@ -38,16 +39,92 @@
   font-size: 0.95rem;
 }
 
+/* Formulario */
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 1.5rem;
 }
 
-.register-form input {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field input {
   width: 100%;
 }
 
+/* DatePicker ocupa todo el ancho */
+:host ::ng-deep .field p-datepicker {
+  width: 100%;
+}
+
+:host ::ng-deep .field p-datepicker .p-datepicker {
+  width: 100%;
+}
+
+:host ::ng-deep .field .input-error .p-inputtext {
+  border-color: #ef4444 !important;
+}
+
+/* Errores */
+.error-text {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+:host ::ng-deep .input-error {
+  border-color: #ef4444 !important;
+}
+
+/* Reglas de contraseña */
+.password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.password-rules small {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.rule-pass {
+  color: #22c55e;
+}
+
+.rule-fail {
+  color: #9ca3af;
+}
+
+/* Alerta de éxito */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.alert-success {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+/* Botón */
 :host ::ng-deep .submit-btn {
   width: 100%;
 }
@@ -57,6 +134,7 @@
   justify-content: center;
 }
 
+/* Footer */
 .register-footer {
   text-align: center;
   margin-top: 1.5rem;

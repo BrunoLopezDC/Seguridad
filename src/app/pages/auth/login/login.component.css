@@ -22,7 +22,7 @@
 
 .login-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .login-header h1 {
@@ -38,16 +38,58 @@
   font-size: 0.95rem;
 }
 
+/* Formulario */
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 1.5rem;
 }
 
-.login-form input {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field input {
   width: 100%;
 }
 
+/* Errores */
+.error-text {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+:host ::ng-deep .input-error {
+  border-color: #ef4444 !important;
+}
+
+/* Alertas */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.alert-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+/* Botón */
 :host ::ng-deep .submit-btn {
   width: 100%;
 }
@@ -57,6 +99,7 @@
   justify-content: center;
 }
 
+/* Footer */
 .login-footer {
   text-align: center;
   margin-top: 1.5rem;
@@ -72,4 +115,27 @@
 
 .login-footer a:hover {
   text-decoration: underline;
+}
+
+/* Hint de credenciales */
+.credentials-hint {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.credentials-hint p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
+  color: #4338ca;
+}
+
+.credentials-hint code {
+  display: block;
+  font-size: 0.75rem;
+  color: #6366f1;
+  margin-top: 0.25rem;
 }
