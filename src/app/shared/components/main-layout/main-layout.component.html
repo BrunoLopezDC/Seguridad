@@ -1,0 +1,113 @@
+<div class="layout-wrapper">
+
+  <aside class="sidebar" [class.collapsed]="collapsed()">
+
+    <!-- Header con toggle -->
+    <div class="sidebar-header">
+      @if (!collapsed()) {
+        <span class="sidebar-brand">
+          <i class="pi pi-shield"></i>
+          <span>Angular App</span>
+        </span>
+        <button
+          class="toggle-btn"
+          (click)="toggleSidebar()"
+          title="Minimizar"
+        >
+          <i class="pi pi-angle-double-left"></i>
+        </button>
+      } @else {
+        <button
+          class="toggle-btn"
+          (click)="toggleSidebar()"
+          title="Expandir"
+        >
+          <i class="pi pi-angle-double-right"></i>
+        </button>
+      }
+    </div>
+
+    <!-- Navegación -->
+    <nav class="sidebar-nav">
+      @for (item of navItems; track item.route) {
+        <a
+          class="nav-item"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [pTooltip]="collapsed() ? item.label : ''"
+          tooltipPosition="right"
+        >
+          <i [class]="item.icon"></i>
+          @if (!collapsed()) {
+            <span>{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+
+      <!-- Versión -->
+      <div class="version-row">
+        @if (!collapsed()) {
+          <span class="version-label">
+            <i class="pi pi-tag"></i>
+            <span>v1.0.0</span>
+          </span>
+        }
+        <p-menu
+          #versionMenu
+          [model]="versionMenuItems"
+          [popup]="true"
+          appendTo="body"
+        />
+        <button
+          class="icon-btn"
+          (click)="toggleVersionMenu($event)"
+          [pTooltip]="collapsed() ? 'Opciones' : ''"
+          tooltipPosition="right"
+        >
+          <i class="pi pi-ellipsis-v"></i>
+        </button>
+      </div>
+
+      <!-- Logout -->
+      <a
+        class="nav-item nav-item--logout"
+        (click)="logout()"
+        [pTooltip]="collapsed() ? 'Cerrar sesión' : ''"
+        tooltipPosition="right"
+      >
+        <i class="pi pi-sign-out"></i>
+        @if (!collapsed()) {
+          <span>Cerrar sesión</span>
+        }
+      </a>
+
+    </div>
+
+  </aside>
+
+  <!-- Área principal -->
+  <div class="main-wrapper">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2 class="topbar-title">Panel de control</h2>
+      </div>
+      <div class="topbar-right">
+        <span class="user-info">
+          <i class="pi pi-user"></i>
+          <span>{{ currentUser() }}</span>
+        </span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <router-outlet />
+    </main>
+
+  </div>
+
+</div>

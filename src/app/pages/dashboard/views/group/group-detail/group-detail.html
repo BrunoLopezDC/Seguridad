@@ -1,0 +1,240 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1><i class="pi pi-sitemap"></i> Gestión del Grupo</h1>
+    <p>Configuración y usuarios del grupo.</p>
+  </div>
+
+  <p-button
+    label="Volver"
+    icon="pi pi-arrow-left"
+    severity="secondary"
+    [outlined]="true"
+    (onClick)="goBack()"
+  ></p-button>
+</div>
+
+@if (successMessage()) {
+  <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
+}
+@if (errorMessage()) {
+  <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
+}
+
+@if (!group()) {
+  <p-card styleClass="table-card">
+    <div class="empty-table">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando grupo...</span>
+    </div>
+  </p-card>
+
+} @else if (!hasAccess()) {
+  <p-card styleClass="table-card">
+    <div class="empty-table">
+      <i class="pi pi-lock"></i>
+      <span>No tienes permisos para gestionar este grupo.</span>
+    </div>
+  </p-card>
+
+} @else {
+
+  <!-- Info del grupo -->
+  <p-card styleClass="table-card">
+    <div class="group-info-header">
+      <div>
+        <h2>{{ group()!.name }}</h2>
+        <p>{{ group()!.description || 'Sin descripción' }}</p>
+      </div>
+
+      <div class="action-buttons">
+        @if (permissions.groupEdit) {
+          <p-button
+            label="Editar grupo"
+            icon="pi pi-pencil"
+            severity="info"
+            [outlined]="true"
+            (onClick)="openEditSettings()"
+          ></p-button>
+        }
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Miembros -->
+  <p-card styleClass="table-card">
+    <div class="members-header">
+      <div>
+        <h2>Usuarios del grupo</h2>
+        <p>{{ members().length }} miembro(s) registrado(s)</p>
+      </div>
+
+      @if (permissions.groupAdd) {
+        <p-button
+          label="Añadir usuario"
+          icon="pi pi-user-plus"
+          (onClick)="openAddMember()"
+        ></p-button>
+      }
+    </div>
+
+    <p-table
+      [value]="members()"
+      [paginator]="true"
+      [rows]="5"
+      [rowsPerPageOptions]="[5, 10, 20]"
+      styleClass="p-datatable-striped"
+      responsiveLayout="scroll"
+    >
+      <ng-template #header>
+        <tr>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Fecha de ingreso</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-member>
+        <tr>
+          <td>
+            <div class="member-user">
+              <p-avatar [label]="getInitials(member.name)" shape="circle"></p-avatar>
+              <span>{{ member.name }}</span>
+            </div>
+          </td>
+          <td>{{ member.email }}</td>
+          <td>
+            <p-tag
+              [value]="getRoleLabel(member.role)"
+              [severity]="getRoleSeverity(member.role)"
+            ></p-tag>
+          </td>
+          <td>{{ member.joinedAt | date:'dd/MM/yyyy' }}</td>
+          <td>
+            @if (permissions.groupDelete && member.role !== 'admin') {
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                [rounded]="true"
+                [outlined]="true"
+                (onClick)="confirmRemoveMember(member)"
+                pTooltip="Eliminar del grupo"
+              ></p-button>
+            }
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #empty>
+        <tr>
+          <td colspan="5" class="empty-table">
+            <i class="pi pi-inbox"></i>
+            <span>No hay usuarios en este grupo.</span>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+
+  <!-- Dialog: Editar grupo -->
+  <p-dialog
+    header="Editar grupo"
+    [(visible)]="settingsDialogVisible"
+    [modal]="true"
+    [style]="{ width: '450px' }"
+    [draggable]="false"
+  >
+    <div class="dialog-form">
+      <div class="field">
+        <p-floatlabel variant="on">
+          <input
+            pInputText
+            id="groupName"
+            type="text"
+            [(ngModel)]="editedGroup.name"
+            name="groupName"
+            [class.input-error]="submitted && !editedGroup.name.trim()"
+          />
+          <label for="groupName">Nombre del grupo</label>
+        </p-floatlabel>
+        @if (submitted && !editedGroup.name.trim()) {
+          <small class="error-text">El nombre es obligatorio.</small>
+        }
+      </div>
+
+      <div class="field">
+        <p-floatlabel variant="on">
+          <input
+            pInputText
+            id="groupDesc"
+            type="text"
+            [(ngModel)]="editedGroup.description"
+            name="groupDesc"
+          />
+          <label for="groupDesc">Descripción</label>
+        </p-floatlabel>
+      </div>
+    </div>
+
+    <ng-template #footer>
+      <p-button
+        label="Cancelar"
+        icon="pi pi-times"
+        severity="secondary"
+        [text]="true"
+        (onClick)="settingsDialogVisible = false"
+      ></p-button>
+      <p-button
+        label="Guardar"
+        icon="pi pi-check"
+        (onClick)="saveGroupSettings()"
+      ></p-button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Dialog: Añadir miembro -->
+  <p-dialog
+    header="Añadir usuario al grupo"
+    [(visible)]="addMemberDialogVisible"
+    [modal]="true"
+    [style]="{ width: '450px' }"
+    [draggable]="false"
+  >
+    <div class="dialog-form">
+      <div class="field">
+        <p-floatlabel variant="on">
+          <input
+            pInputText
+            id="memberEmail"
+            type="email"
+            [(ngModel)]="newMemberEmail"
+            name="memberEmail"
+            [class.input-error]="submitted && !newMemberEmail.trim()"
+          />
+          <label for="memberEmail">Correo del usuario</label>
+        </p-floatlabel>
+        @if (submitted && !newMemberEmail.trim()) {
+          <small class="error-text">El correo es obligatorio.</small>
+        }
+      </div>
+    </div>
+
+    <ng-template #footer>
+      <p-button
+        label="Cancelar"
+        icon="pi pi-times"
+        severity="secondary"
+        [text]="true"
+        (onClick)="addMemberDialogVisible = false"
+      ></p-button>
+      <p-button
+        label="Añadir"
+        icon="pi pi-user-plus"
+        (onClick)="addMember()"
+      ></p-button>
+    </ng-template>
+  </p-dialog>
+}
+
+<p-confirmdialog />

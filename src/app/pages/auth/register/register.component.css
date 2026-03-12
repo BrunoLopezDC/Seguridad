@@ -56,16 +56,30 @@
   width: 100%;
 }
 
+/* p-password ocupa todo el ancho */
+:host ::ng-deep .password-full {
+  width: 100%;
+}
+
+:host ::ng-deep .password-full .p-password {
+  width: 100%;
+}
+
+:host ::ng-deep .password-full .p-inputtext {
+  width: 100%;
+}
+
 /* DatePicker ocupa todo el ancho */
 :host ::ng-deep .field p-datepicker {
   width: 100%;
 }
 
-:host ::ng-deep .field p-datepicker .p-datepicker {
+:host ::ng-deep .field p-datepicker .p-datepicker-input {
   width: 100%;
 }
 
-:host ::ng-deep .field .input-error .p-inputtext {
+/* Error en datepicker */
+:host ::ng-deep .datepicker-error .p-datepicker-input {
   border-color: #ef4444 !important;
 }
 
@@ -107,7 +121,7 @@
   color: #9ca3af;
 }
 
-/* Alerta de éxito */
+/* Alerta */
 .alert {
   display: flex;
   align-items: center;
@@ -150,4 +164,20 @@
 
 .register-footer a:hover {
   text-decoration: underline;
+}
+
+/* Fecha de nacimiento */
+.date-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+:host ::ng-deep .date-full {
+  width: 100%;
+}
+
+:host ::ng-deep .date-full .p-datepicker-input {
+  width: 100%;
 }

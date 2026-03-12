@@ -1,0 +1,175 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1><i class="pi pi-users"></i> Usuarios</h1>
+    <p>Gestión de usuarios del sistema.</p>
+  </div>
+  <p-button
+    label="Nuevo usuario"
+    icon="pi pi-plus"
+    [disabled]="!canCreateUser()"
+    (onClick)="openNew()"
+    [pTooltip]="!canCreateUser() ? 'No tienes permiso para crear usuarios' : ''"
+    pTooltipPosition="top"
+  ></p-button>
+</div>
+
+<!-- Mensajes -->
+@if (successMessage()) {
+  <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
+}
+@if (errorMessage()) {
+  <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
+}
+
+<!-- Tabla -->
+<p-card styleClass="table-card">
+  <p-table
+    [value]="users()"
+    [paginator]="true"
+    [rows]="5"
+    [rowsPerPageOptions]="[5, 10, 20]"
+    styleClass="p-datatable-striped"
+    responsiveLayout="scroll"
+  >
+    <ng-template #header>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-user>
+      <tr>
+        <td>{{ user.id }}</td>
+        <td>{{ user.name }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+          <p-tag
+            [value]="getRoleLabel(user.role)"
+            [severity]="getRoleSeverity(user.role)"
+          ></p-tag>
+        </td>
+        <td>
+          <div class="action-buttons">
+            <p-button
+              icon="pi pi-user"
+              severity="secondary"
+              [rounded]="true"
+              [outlined]="true"
+              (onClick)="viewProfile(user)"
+              pTooltip="Ver perfil"
+            ></p-button>
+            <p-button
+              icon="pi pi-pencil"
+              severity="info"
+              [rounded]="true"
+              [outlined]="true"
+              [disabled]="!canEditUser()"
+              (onClick)="openEdit(user)"
+              [pTooltip]="!canEditUser() ? 'No tienes permiso para editar' : 'Editar usuario'"
+            ></p-button>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [rounded]="true"
+              [outlined]="true"
+              [disabled]="!canDeleteUser()"
+              (onClick)="confirmDelete(user)"
+              [pTooltip]="!canDeleteUser() ? 'No tienes permiso para eliminar' : 'Eliminar usuario'"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #empty>
+      <tr>
+        <td colspan="5" class="empty-table">
+          <i class="pi pi-inbox"></i>
+          <span>No hay usuarios registrados.</span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-card>
+
+<!-- Dialog crear/editar -->
+<p-dialog
+  [header]="isEditing() ? 'Editar usuario' : 'Nuevo usuario'"
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [style]="{ width: '450px' }"
+  [draggable]="false"
+>
+  <div class="dialog-form">
+
+    <div class="field">
+      <p-floatlabel variant="on">
+        <input
+          pInputText
+          id="userName"
+          type="text"
+          [(ngModel)]="currentUser.name"
+          name="userName"
+          [class.input-error]="submitted() && !currentUser.name.trim()"
+        />
+        <label for="userName">Nombre completo</label>
+      </p-floatlabel>
+      @if (submitted() && !currentUser.name.trim()) {
+        <small class="error-text">El nombre es obligatorio.</small>
+      }
+    </div>
+
+    <div class="field">
+      <p-floatlabel variant="on">
+        <input
+          pInputText
+          id="userEmail"
+          type="email"
+          [(ngModel)]="currentUser.email"
+          name="userEmail"
+          [class.input-error]="submitted() && !currentUser.email.trim()"
+        />
+        <label for="userEmail">Correo electrónico</label>
+      </p-floatlabel>
+      @if (submitted() && !currentUser.email.trim()) {
+        <small class="error-text">El correo es obligatorio.</small>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field-label">Rol</label>
+      <p-select
+        [(ngModel)]="currentUser.role"
+        [options]="roles"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Selecciona un rol"
+        styleClass="select-full"
+        appendTo="body"
+      />
+    </div>
+
+  </div>
+
+  <ng-template #footer>
+    <p-button
+      label="Cancelar"
+      icon="pi pi-times"
+      severity="secondary"
+      [text]="true"
+      (onClick)="dialogVisible.set(false)"
+    ></p-button>
+    <p-button
+      [label]="isEditing() ? 'Actualizar' : 'Guardar'"
+      icon="pi pi-check"
+      (onClick)="saveUser()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- Confirm dialog -->
+<p-confirmdialog />

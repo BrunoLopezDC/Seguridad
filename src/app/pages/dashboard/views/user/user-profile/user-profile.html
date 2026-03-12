@@ -1,0 +1,80 @@
+@if (user()) {
+  <div class="profile-container">
+
+    <div class="profile-header">
+      <p-button icon="pi pi-arrow-left" severity="secondary" [text]="true" (onClick)="goBack()" pTooltip="Volver"></p-button>
+      <h1>Perfil de Usuario</h1>
+    </div>
+
+    <div class="profile-grid">
+
+      <div class="profile-sidebar">
+        <p-card styleClass="info-card">
+          <div class="user-avatar">
+            <p-avatar [label]="getInitials(user()!.name)" size="xlarge" shape="circle" styleClass="avatar-xl"></p-avatar>
+            <p-tag [value]="getRoleLabel(user()!.role)" [severity]="getRoleSeverity(user()!.role)"></p-tag>
+          </div>
+          <div class="user-info">
+            <h2>{{ user()!.name }}</h2>
+            <span class="user-email">{{ user()!.email }}</span>
+          </div>
+          <p-divider />
+          <div class="user-details">
+            <div class="detail-row">
+              <i class="pi pi-building"></i>
+              <div><span class="label">Departamento</span><span class="value">{{ user()!.departamento || 'Sin asignar' }}</span></div>
+            </div>
+            <div class="detail-row">
+              <i class="pi pi-phone"></i>
+              <div><span class="label">Teléfono</span><span class="value">{{ user()!.telefono || 'No registrado' }}</span></div>
+            </div>
+            <div class="detail-row">
+              <i class="pi pi-calendar"></i>
+              <div><span class="label">Fecha de registro</span><span class="value">{{ user()!.fechaRegistro | date:'dd/MM/yyyy' }}</span></div>
+            </div>
+          </div>
+        </p-card>
+
+        <p-card styleClass="stats-card">
+          <div class="stats-header"><i class="pi pi-chart-bar"></i><h3>Carga de Trabajo</h3></div>
+          <div class="stats-grid">
+            <div class="stat-box total"><span class="number">{{ stats.total }}</span><span class="label">Total</span></div>
+            <div class="stat-box open"><span class="number">{{ stats.abiertos }}</span><span class="label">Pendientes</span></div>
+            <div class="stat-box progress"><span class="number">{{ stats.enProgreso }}</span><span class="label">En progreso</span></div>
+            <div class="stat-box done"><span class="number">{{ stats.resueltos + stats.cerrados }}</span><span class="label">Completados</span></div>
+          </div>
+        </p-card>
+      </div>
+
+      <div class="profile-main">
+        <p-card styleClass="tickets-card">
+          <div class="tickets-header">
+            <div class="header-title"><i class="pi pi-ticket"></i><h3>Tickets Asignados</h3></div>
+            <span class="count-badge">{{ userTickets.length }}</span>
+          </div>
+          <p-table [value]="userTickets" [paginator]="true" [rows]="5" styleClass="p-datatable-striped" responsiveLayout="scroll">
+            <ng-template #header>
+              <tr><th>#</th><th>Título</th><th>Estado</th><th>Prioridad</th><th>Fecha Límite</th><th>Acciones</th></tr>
+            </ng-template>
+            <ng-template #body let-ticket>
+              <tr>
+                <td>{{ ticket.id }}</td>
+                <td><strong>{{ ticket.titulo }}</strong></td>
+                <td><p-tag [value]="getEstadoLabel(ticket.estadoActual)" [severity]="getEstadoSeverity(ticket.estadoActual)"></p-tag></td>
+                <td><p-tag [value]="getPrioridadLabel(ticket.prioridad)" [severity]="getPrioridadSeverity(ticket.prioridad)"></p-tag></td>
+                <td>{{ ticket.fechaLimite | date:'dd/MM/yyyy' }}</td>
+                <td><p-button icon="pi pi-eye" severity="info" [rounded]="true" [outlined]="true" (onClick)="viewTicket(ticket)" pTooltip="Ver"></p-button></td>
+              </tr>
+            </ng-template>
+            <ng-template #empty>
+              <tr><td colspan="6" class="empty-table"><i class="pi pi-inbox"></i><span>Sin tickets asignados</span></td></tr>
+            </ng-template>
+          </p-table>
+        </p-card>
+      </div>
+
+    </div>
+  </div>
+} @else {
+  <div class="loading"><i class="pi pi-spin pi-spinner"></i><p>Cargando...</p></div>
+}

@@ -1,0 +1,77 @@
+<div class="dashboard-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+
+    <div class="sidebar-header">
+      @if (!sidebarCollapsed()) {
+        <span class="sidebar-title">
+          <i class="pi pi-shield"></i>
+          Seguridad App
+        </span>
+      }
+      <p-button
+        [icon]="sidebarCollapsed() ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
+        severity="secondary"
+        [text]="true"
+        (onClick)="toggleSidebar()"
+        [pTooltip]="sidebarCollapsed() ? 'Expandir' : 'Colapsar'"
+        tooltipPosition="right"
+      ></p-button>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of menuItems; track item.route) {
+        <a
+          class="nav-item"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [pTooltip]="sidebarCollapsed() ? item.label : ''"
+          tooltipPosition="right"
+        >
+          <i [class]="item.icon"></i>
+          @if (!sidebarCollapsed()) {
+            <span>{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <a
+        class="nav-item nav-item--logout"
+        routerLink="/login"
+        [pTooltip]="sidebarCollapsed() ? 'Cerrar sesión' : ''"
+        tooltipPosition="right"
+      >
+        <i class="pi pi-sign-out"></i>
+        @if (!sidebarCollapsed()) {
+          <span>Cerrar sesión</span>
+        }
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- Contenido principal -->
+  <div class="main-wrapper">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2 class="topbar-title">Panel de control</h2>
+      </div>
+      <div class="topbar-right">
+        <span class="user-info">
+          <i class="pi pi-user"></i>
+          usuario&#64;seguridad.com
+        </span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <router-outlet />
+    </main>
+
+  </div>
+
+</div>

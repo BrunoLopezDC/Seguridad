@@ -1,0 +1,174 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1><i class="pi pi-sitemap"></i> Grupos</h1>
+    <p>Gestión de grupos del sistema.</p>
+  </div>
+  <p-button
+    label="Nuevo grupo"
+    icon="pi pi-plus"
+    [disabled]="!canAddGroup()"
+    (onClick)="openNew()"
+    [pTooltip]="!canAddGroup() ? 'No tienes permiso para crear grupos' : ''"
+    pTooltipPosition="top"
+  ></p-button>
+</div>
+
+<!-- Mensajes -->
+@if (successMessage()) {
+  <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
+}
+@if (errorMessage()) {
+  <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
+}
+
+<!-- Tabla -->
+<p-card styleClass="table-card">
+  <p-table
+    [value]="groups()"
+    [paginator]="true"
+    [rows]="5"
+    [rowsPerPageOptions]="[5, 10, 20]"
+    styleClass="p-datatable-striped"
+    responsiveLayout="scroll"
+  >
+    <ng-template #header>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Máx. miembros</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-group>
+      <tr>
+        <td>{{ group.id }}</td>
+        <td>{{ group.name }}</td>
+        <td>{{ group.description }}</td>
+        <td>{{ group.maxMembers }}</td>
+        <td>
+          <p-tag
+            [value]="group.active ? 'Activo' : 'Inactivo'"
+            [severity]="group.active ? 'success' : 'danger'"
+          ></p-tag>
+        </td>
+        <td>
+          <div class="action-buttons">
+            <p-button
+              icon="pi pi-users"
+              severity="secondary"
+              [rounded]="true"
+              [outlined]="true"
+              (onClick)="manageGroup(group)"
+              pTooltip="Gestionar miembros"
+            ></p-button>
+            <p-button
+              icon="pi pi-pencil"
+              severity="info"
+              [rounded]="true"
+              [outlined]="true"
+              [disabled]="!canEditGroup()"
+              (onClick)="openEdit(group)"
+              [pTooltip]="!canEditGroup() ? 'No tienes permiso para editar' : 'Editar grupo'"
+            ></p-button>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [rounded]="true"
+              [outlined]="true"
+              [disabled]="!canDeleteGroup()"
+              (onClick)="confirmDelete(group)"
+              [pTooltip]="!canDeleteGroup() ? 'No tienes permiso para eliminar' : 'Eliminar grupo'"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template #empty>
+      <tr>
+        <td colspan="6" class="empty-table">
+          <i class="pi pi-inbox"></i>
+          <span>No hay grupos registrados.</span>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-card>
+
+<!-- Dialog crear/editar -->
+<p-dialog
+  [header]="isEditing() ? 'Editar grupo' : 'Nuevo grupo'"
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [style]="{ width: '450px' }"
+  [draggable]="false"
+>
+  <div class="dialog-form">
+
+    <div class="field">
+      <p-floatlabel variant="on">
+        <input
+          pInputText
+          id="groupName"
+          type="text"
+          [(ngModel)]="currentGroup.name"
+          name="groupName"
+          [class.input-error]="submitted() && !currentGroup.name.trim()"
+        />
+        <label for="groupName">Nombre del grupo</label>
+      </p-floatlabel>
+      @if (submitted() && !currentGroup.name.trim()) {
+        <small class="error-text">El nombre es obligatorio.</small>
+      }
+    </div>
+
+    <div class="field">
+      <p-floatlabel variant="on">
+        <input
+          pInputText
+          id="groupDescription"
+          type="text"
+          [(ngModel)]="currentGroup.description"
+          name="groupDescription"
+        />
+        <label for="groupDescription">Descripción</label>
+      </p-floatlabel>
+    </div>
+
+    <div class="field">
+      <p-floatlabel variant="on">
+        <p-inputnumber
+          inputId="maxMembers"
+          [(ngModel)]="currentGroup.maxMembers"
+          name="maxMembers"
+          [min]="1"
+          [max]="100"
+          styleClass="input-full"
+        />
+        <label for="maxMembers">Máximo de miembros</label>
+      </p-floatlabel>
+    </div>
+
+  </div>
+
+  <ng-template #footer>
+    <p-button
+      label="Cancelar"
+      icon="pi pi-times"
+      severity="secondary"
+      [text]="true"
+      (onClick)="dialogVisible.set(false)"
+    ></p-button>
+    <p-button
+      [label]="isEditing() ? 'Actualizar' : 'Guardar'"
+      icon="pi pi-check"
+      (onClick)="saveGroup()"
+    ></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- Confirm dialog -->
+<p-confirmdialog />

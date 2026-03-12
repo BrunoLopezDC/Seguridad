@@ -1,0 +1,323 @@
+@if (ticket()) {
+  <div class="detail-container">
+
+    <!-- Header -->
+    <div class="detail-header">
+      <div class="header-left">
+        <p-button
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          [text]="true"
+          (onClick)="goBack()"
+          pTooltip="Volver"
+        ></p-button>
+        <div class="header-info">
+          <h1><i class="pi pi-ticket"></i> Ticket #{{ ticket()!.id }}</h1>
+          <div class="header-meta">
+            <p-tag
+              [value]="getEstadoLabel(ticket()!.estadoActual)"
+              [severity]="getEstadoSeverity(ticket()!.estadoActual)"
+            ></p-tag>
+            <p-tag
+              [value]="getPrioridadLabel(ticket()!.prioridad)"
+              [severity]="getPrioridadSeverity(ticket()!.prioridad)"
+            ></p-tag>
+          </div>
+        </div>
+      </div>
+      @if (!isEditing()) {
+        <p-button
+          label="Editar"
+          icon="pi pi-pencil"
+          (onClick)="enableEdit()"
+        ></p-button>
+      }
+    </div>
+
+    <!-- Mensajes -->
+    @if (successMessage()) {
+      <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
+    }
+    @if (errorMessage()) {
+      <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
+    }
+
+    <div class="detail-grid">
+
+      <!-- Columna principal: Detalles del ticket -->
+      <div class="detail-main">
+        
+        @if (isEditing() && editableTicket) {
+          <!-- Modo edición -->
+          <p-card styleClass="detail-card">
+            <ng-template #header>
+              <div class="card-header">
+                <h2>Editar Ticket</h2>
+              </div>
+            </ng-template>
+
+            <div class="detail-form">
+
+              <div class="field">
+                <p-floatlabel variant="on">
+                  <input
+                    pInputText
+                    id="titulo"
+                    type="text"
+                    [(ngModel)]="editableTicket.titulo"
+                    [class.input-error]="submitted() && !editableTicket.titulo.trim()"
+                  />
+                  <label for="titulo">Título *</label>
+                </p-floatlabel>
+                @if (submitted() && !editableTicket.titulo.trim()) {
+                  <small class="error-text">El título es obligatorio.</small>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field-label">Descripción *</label>
+                <textarea
+                  pTextarea
+                  [(ngModel)]="editableTicket.descripcion"
+                  rows="4"
+                  [class.input-error]="submitted() && !editableTicket.descripcion.trim()"
+                ></textarea>
+                @if (submitted() && !editableTicket.descripcion.trim()) {
+                  <small class="error-text">La descripción es obligatoria.</small>
+                }
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label class="field-label">Estado</label>
+                  <p-select
+                    [(ngModel)]="editableTicket.estadoActual"
+                    [options]="estadosOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Selecciona estado"
+                    styleClass="select-full"
+                    appendTo="body"
+                  />
+                </div>
+
+                <div class="field">
+                  <label class="field-label">Prioridad</label>
+                  <p-select
+                    [(ngModel)]="editableTicket.prioridad"
+                    [options]="prioridadOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Selecciona prioridad"
+                    styleClass="select-full"
+                    appendTo="body"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field-label">Asignado a</label>
+                <p-select
+                  [(ngModel)]="editableTicket.asignadoA"
+                  [options]="usuariosOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Selecciona usuario"
+                  styleClass="select-full"
+                  appendTo="body"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field-label">Fecha Límite</label>
+                <p-datepicker
+                  [(ngModel)]="editableTicket.fechaLimite"
+                  [minDate]="minDate"
+                  dateFormat="dd/mm/yy"
+                  [showIcon]="true"
+                  [showButtonBar]="true"
+                  appendTo="body"
+                  placeholder="dd/mm/aaaa"
+                  styleClass="date-full"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field-label">Comentarios</label>
+                <textarea
+                  pTextarea
+                  [(ngModel)]="editableTicket.comentarios"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="form-actions">
+                <p-button
+                  label="Cancelar"
+                  icon="pi pi-times"
+                  severity="secondary"
+                  [outlined]="true"
+                  (onClick)="cancelEdit()"
+                ></p-button>
+                <p-button
+                  label="Guardar cambios"
+                  icon="pi pi-check"
+                  (onClick)="saveChanges()"
+                ></p-button>
+              </div>
+
+            </div>
+          </p-card>
+
+        } @else {
+          <!-- Modo lectura con cards separadas -->
+          
+          <!-- Información básica -->
+          <p-card styleClass="info-card">
+            <ng-template #header>
+              <div class="card-header-small">
+                <i class="pi pi-info-circle"></i>
+                <h3>Información Básica</h3>
+              </div>
+            </ng-template>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Título</span>
+                <span class="info-value">{{ ticket()!.titulo }}</span>
+              </div>
+
+              <div class="info-item full-width">
+                <span class="info-label">Descripción</span>
+                <span class="info-value">{{ ticket()!.descripcion }}</span>
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Estado y Asignación -->
+          <p-card styleClass="info-card">
+            <ng-template #header>
+              <div class="card-header-small">
+                <i class="pi pi-bookmark"></i>
+                <h3>Estado y Asignación</h3>
+              </div>
+            </ng-template>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Estado</span>
+                <p-tag
+                  [value]="getEstadoLabel(ticket()!.estadoActual)"
+                  [severity]="getEstadoSeverity(ticket()!.estadoActual)"
+                ></p-tag>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label">Prioridad</span>
+                <p-tag
+                  [value]="getPrioridadLabel(ticket()!.prioridad)"
+                  [severity]="getPrioridadSeverity(ticket()!.prioridad)"
+                ></p-tag>
+              </div>
+
+              <div class="info-item full-width">
+                <span class="info-label">Asignado a</span>
+                <span class="info-value">
+                  <i class="pi pi-user"></i>
+                  {{ ticket()!.asignadoA || 'Sin asignar' }}
+                </span>
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Fechas -->
+          <p-card styleClass="info-card">
+            <ng-template #header>
+              <div class="card-header-small">
+                <i class="pi pi-calendar"></i>
+                <h3>Fechas</h3>
+              </div>
+            </ng-template>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Fecha de Creación</span>
+                <span class="info-value">{{ ticket()!.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label">Fecha Límite</span>
+                <span class="info-value">{{ ticket()!.fechaLimite | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Comentarios -->
+          <p-card styleClass="info-card">
+            <ng-template #header>
+              <div class="card-header-small">
+                <i class="pi pi-comment"></i>
+                <h3>Comentarios</h3>
+              </div>
+            </ng-template>
+
+            <div class="comments-content">
+              {{ ticket()!.comentarios || 'Sin comentarios' }}
+            </div>
+          </p-card>
+
+        }
+      </div>
+
+            <!-- Columna lateral: Historial de cambios -->
+      <div class="detail-sidebar">
+        <p-card styleClass="history-card">
+          <ng-template #header>
+            <div class="card-header">
+              <h2><i class="pi pi-history"></i> Historial de Cambios</h2>
+            </div>
+          </ng-template>
+
+          @if (ticket()!.historialCambios.length > 0) {
+            <p-timeline [value]="ticket()!.historialCambios" align="left">
+              <ng-template #opposite let-cambio>
+                <div class="timeline-date-wrapper">
+                  <small class="timeline-date">{{ cambio.fecha | date:'dd/MM/yyyy' }}</small>
+                  <small class="timeline-time">{{ cambio.fecha | date:'HH:mm' }}</small>
+                </div>
+              </ng-template>
+              <ng-template #content let-cambio>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <strong>{{ cambio.campo }}</strong>
+                  </div>
+                  <div class="timeline-change">
+                    <span class="old-value">{{ cambio.valorAnterior }}</span>
+                    <i class="pi pi-arrow-right"></i>
+                    <span class="new-value">{{ cambio.valorNuevo }}</span>
+                  </div>
+                  <div class="timeline-user">
+                    <i class="pi pi-user"></i>
+                    <span>{{ cambio.usuario }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </p-timeline>
+          } @else {
+            <div class="empty-history">
+              <i class="pi pi-info-circle"></i>
+              <p>No hay cambios registrados</p>
+            </div>
+          }
+
+        </p-card>
+      </div>
+    </div>
+
+  </div>
+} @else {
+  <div class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>Cargando ticket...</p>
+  </div>
+}

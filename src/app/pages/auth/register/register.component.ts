@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { DatePickerModule } from 'primeng/datepicker';
+import { PasswordModule } from 'primeng/password';
 
 interface ValidationErrors {
   name: string;
@@ -23,7 +24,8 @@ interface ValidationErrors {
     ButtonModule,
     InputTextModule,
     FloatLabelModule,
-    DatePickerModule
+    DatePickerModule,
+    PasswordModule
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css'
@@ -35,6 +37,11 @@ export class RegisterComponent {
   birthDate = signal<Date | null>(null);
   password = signal<string>('');
   confirmPassword = signal<string>('');
+
+  // Variables puente para p-password y p-datepicker con [(ngModel)]
+  passwordValue: string = '';
+  confirmPasswordValue: string = '';
+  birthDateValue: Date | null = null; 
 
   errors = signal<ValidationErrors>({
     name: '',
@@ -52,11 +59,11 @@ export class RegisterComponent {
   private readonly EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   private readonly PHONE_REGEX = /^[0-9]{10}$/;
 
-  /** Fecha máxima permitida (hace 18 años desde hoy) */
-  maxDate = computed<Date>(() => {
+  /** Fecha máxima permitida (hace 18 años desde hoy) — propiedad normal, no computed */
+  maxDate: Date = (() => {
     const today = new Date();
     return new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
-  });
+  })();
 
   constructor(private readonly router: Router) {}
 
@@ -100,6 +107,21 @@ export class RegisterComponent {
     const cleaned = input.value.replace(/[^0-9]/g, '');
     this.phone.set(cleaned);
     input.value = cleaned;
+  }
+
+  onPasswordChange(value: string): void {
+    this.passwordValue = value;
+    this.password.set(value);
+  }
+
+  onConfirmPasswordChange(value: string): void {
+    this.confirmPasswordValue = value;
+    this.confirmPassword.set(value);
+  }
+
+  onDateChange(value: Date | null): void {
+    this.birthDateValue = value;        // ← actualiza la variable puente
+    this.birthDate.set(value);          // ← sincroniza el signal
   }
 
   validate(): boolean {
