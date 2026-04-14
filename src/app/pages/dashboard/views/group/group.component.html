@@ -13,7 +13,6 @@
   ></p-button>
 </div>
 
-<!-- Mensajes -->
 @if (successMessage()) {
   <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
 }
@@ -21,14 +20,13 @@
   <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
 }
 
-<!-- Tabla -->
 <p-card styleClass="table-card">
   <p-table
     [value]="groups()"
     [paginator]="true"
     [rows]="5"
     [rowsPerPageOptions]="[5, 10, 20]"
-    styleClass="p-datatable-striped"
+    styleClass="p-datatable-sm modern-table p-datatable-striped"
     responsiveLayout="scroll"
   >
     <ng-template #header>
@@ -36,22 +34,23 @@
         <th>#</th>
         <th>Nombre</th>
         <th>Descripción</th>
-        <th>Máx. miembros</th>
-        <th>Estado</th>
-        <th>Acciones</th>
+        <th class="text-center">Máx. miembros</th>
+        <th class="text-center">Estado</th>
+        <th class="text-center">Acciones</th>
       </tr>
     </ng-template>
 
     <ng-template #body let-group>
-      <tr>
-        <td>{{ group.id }}</td>
-        <td>{{ group.name }}</td>
-        <td>{{ group.description }}</td>
-        <td>{{ group.maxMembers }}</td>
-        <td>
+      <tr class="table-row-hover">
+        <td class="text-muted">#{{ group.id }}</td>
+        <td><strong class="group-title">{{ group.name }}</strong></td>
+        <td class="text-muted">{{ group.description || 'Sin descripción' }}</td>
+        <td class="text-center">{{ group.maxMembers }}</td>
+        <td class="text-center">
           <p-tag
             [value]="group.active ? 'Activo' : 'Inactivo'"
             [severity]="group.active ? 'success' : 'danger'"
+            styleClass="status-tag"
           ></p-tag>
         </td>
         <td>
@@ -60,7 +59,7 @@
               icon="pi pi-users"
               severity="secondary"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               (onClick)="manageGroup(group)"
               pTooltip="Gestionar miembros"
             ></p-button>
@@ -68,7 +67,7 @@
               icon="pi pi-pencil"
               severity="info"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               [disabled]="!canEditGroup()"
               (onClick)="openEdit(group)"
               [pTooltip]="!canEditGroup() ? 'No tienes permiso para editar' : 'Editar grupo'"
@@ -77,7 +76,7 @@
               icon="pi pi-trash"
               severity="danger"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               [disabled]="!canDeleteGroup()"
               (onClick)="confirmDelete(group)"
               [pTooltip]="!canDeleteGroup() ? 'No tienes permiso para eliminar' : 'Eliminar grupo'"
@@ -89,25 +88,26 @@
 
     <ng-template #empty>
       <tr>
-        <td colspan="6" class="empty-table">
-          <i class="pi pi-inbox"></i>
-          <span>No hay grupos registrados.</span>
+        <td colspan="6">
+          <div class="empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No hay grupos registrados.</p>
+          </div>
         </td>
       </tr>
     </ng-template>
   </p-table>
 </p-card>
 
-<!-- Dialog crear/editar -->
 <p-dialog
   [header]="isEditing() ? 'Editar grupo' : 'Nuevo grupo'"
   [(visible)]="dialogVisible"
   [modal]="true"
   [style]="{ width: '450px' }"
   [draggable]="false"
+  styleClass="modern-dialog"
 >
   <div class="dialog-form">
-
     <div class="field">
       <p-floatlabel variant="on">
         <input
@@ -151,7 +151,6 @@
         <label for="maxMembers">Máximo de miembros</label>
       </p-floatlabel>
     </div>
-
   </div>
 
   <ng-template #footer>
@@ -170,5 +169,4 @@
   </ng-template>
 </p-dialog>
 
-<!-- Confirm dialog -->
 <p-confirmdialog />

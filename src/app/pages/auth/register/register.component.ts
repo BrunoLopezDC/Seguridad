@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { DatePickerModule } from 'primeng/datepicker';
 import { PasswordModule } from 'primeng/password';
+import { AuthService } from '../../../core/services/auth.service'; // <-- 1. Importamos el servicio
 
 interface ValidationErrors {
   name: string;
@@ -38,7 +39,6 @@ export class RegisterComponent {
   password = signal<string>('');
   confirmPassword = signal<string>('');
 
-  // Variables puente para p-password y p-datepicker con [(ngModel)]
   passwordValue: string = '';
   confirmPasswordValue: string = '';
   birthDateValue: Date | null = null; 
@@ -53,19 +53,23 @@ export class RegisterComponent {
   });
 
   successMessage = signal<string>('');
+  globalError = signal<string>(''); // <-- 2. Para mostrar errores del backend (ej. "Correo ya existe")
   submitted = signal<boolean>(false);
+  isLoading = signal<boolean>(false); // <-- 3. Para bloquear el botón mientras guarda
 
   private readonly SPECIAL_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?';
   private readonly EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   private readonly PHONE_REGEX = /^[0-9]{10}$/;
 
-  /** Fecha máxima permitida (hace 18 años desde hoy) — propiedad normal, no computed */
   maxDate: Date = (() => {
     const today = new Date();
     return new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
   })();
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly authService: AuthService // <-- 4. Inyectamos el servicio
+  ) {}
 
   isAdult = computed<boolean>(() => {
     const birth = this.birthDate();
@@ -120,87 +124,37 @@ export class RegisterComponent {
   }
 
   onDateChange(value: Date | null): void {
-    this.birthDateValue = value;        // ← actualiza la variable puente
-    this.birthDate.set(value);          // ← sincroniza el signal
+    this.birthDateValue = value;        
+    this.birthDate.set(value);          
   }
 
   validate(): boolean {
     const newErrors: ValidationErrors = {
-      name: '',
-      email: '',
-      phone: '',
-      birthDate: '',
-      password: '',
-      confirmPassword: ''
+      name: '', email: '', phone: '', birthDate: '', password: '', confirmPassword: ''
     };
-
     let isValid = true;
 
-    // Nombre
-    if (!this.name().trim()) {
-      newErrors.name = 'El nombre es obligatorio.';
-      isValid = false;
-    } else if (this.name().trim().length < 3) {
-      newErrors.name = 'El nombre debe tener al menos 3 caracteres.';
-      isValid = false;
-    }
+    if (!this.name().trim()) { newErrors.name = 'El nombre es obligatorio.'; isValid = false; } 
+    else if (this.name().trim().length < 3) { newErrors.name = 'El nombre debe tener al menos 3 caracteres.'; isValid = false; }
 
-    // Email
-    if (!this.email().trim()) {
-      newErrors.email = 'El correo electrónico es obligatorio.';
-      isValid = false;
-    } else if (!this.EMAIL_REGEX.test(this.email())) {
-      newErrors.email = 'Ingresa un correo electrónico válido.';
-      isValid = false;
-    }
+    if (!this.email().trim()) { newErrors.email = 'El correo electrónico es obligatorio.'; isValid = false; } 
+    else if (!this.EMAIL_REGEX.test(this.email())) { newErrors.email = 'Ingresa un correo electrónico válido.'; isValid = false; }
 
-    // Teléfono
-    if (!this.phone().trim()) {
-      newErrors.phone = 'El teléfono es obligatorio.';
-      isValid = false;
-    } else if (!this.PHONE_REGEX.test(this.phone())) {
-      newErrors.phone = 'El teléfono debe tener exactamente 10 dígitos numéricos.';
-      isValid = false;
-    }
+    if (!this.phone().trim()) { newErrors.phone = 'El teléfono es obligatorio.'; isValid = false; } 
+    else if (!this.PHONE_REGEX.test(this.phone())) { newErrors.phone = 'El teléfono debe tener exactamente 10 dígitos numéricos.'; isValid = false; }
 
-    // Fecha de nacimiento
-    if (!this.birthDate()) {
-      newErrors.birthDate = 'La fecha de nacimiento es obligatoria.';
-      isValid = false;
-    } else if (!this.isAdult()) {
-      newErrors.birthDate = 'Debes ser mayor de 18 años para registrarte.';
-      isValid = false;
-    }
+    if (!this.birthDate()) { newErrors.birthDate = 'La fecha de nacimiento es obligatoria.'; isValid = false; } 
+    else if (!this.isAdult()) { newErrors.birthDate = 'Debes ser mayor de 18 años para registrarte.'; isValid = false; }
 
-    // Contraseña
-    if (!this.password()) {
-      newErrors.password = 'La contraseña es obligatoria.';
-      isValid = false;
-    } else if (!this.hasMinLength()) {
-      newErrors.password = 'La contraseña debe tener al menos 10 caracteres.';
-      isValid = false;
-    } else if (!this.hasUpperCase()) {
-      newErrors.password = 'La contraseña debe contener al menos una mayúscula.';
-      isValid = false;
-    } else if (!this.hasLowerCase()) {
-      newErrors.password = 'La contraseña debe contener al menos una minúscula.';
-      isValid = false;
-    } else if (!this.hasNumber()) {
-      newErrors.password = 'La contraseña debe contener al menos un número.';
-      isValid = false;
-    } else if (!this.hasSpecialChar()) {
-      newErrors.password = `La contraseña debe contener al menos un símbolo especial: ${this.SPECIAL_CHARS}`;
-      isValid = false;
-    }
+    if (!this.password()) { newErrors.password = 'La contraseña es obligatoria.'; isValid = false; } 
+    else if (!this.hasMinLength()) { newErrors.password = 'La contraseña debe tener al menos 10 caracteres.'; isValid = false; } 
+    else if (!this.hasUpperCase()) { newErrors.password = 'La contraseña debe contener al menos una mayúscula.'; isValid = false; } 
+    else if (!this.hasLowerCase()) { newErrors.password = 'La contraseña debe contener al menos una minúscula.'; isValid = false; } 
+    else if (!this.hasNumber()) { newErrors.password = 'La contraseña debe contener al menos un número.'; isValid = false; } 
+    else if (!this.hasSpecialChar()) { newErrors.password = `La contraseña debe contener al menos un símbolo especial: ${this.SPECIAL_CHARS}`; isValid = false; }
 
-    // Confirmar contraseña
-    if (!this.confirmPassword()) {
-      newErrors.confirmPassword = 'Confirma tu contraseña.';
-      isValid = false;
-    } else if (this.password() !== this.confirmPassword()) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden.';
-      isValid = false;
-    }
+    if (!this.confirmPassword()) { newErrors.confirmPassword = 'Confirma tu contraseña.'; isValid = false; } 
+    else if (this.password() !== this.confirmPassword()) { newErrors.confirmPassword = 'Las contraseñas no coinciden.'; isValid = false; }
 
     this.errors.set(newErrors);
     return isValid;
@@ -209,23 +163,31 @@ export class RegisterComponent {
   onSubmit(): void {
     this.submitted.set(true);
     this.successMessage.set('');
+    this.globalError.set('');
 
-    if (!this.validate()) {
-      return;
-    }
+    if (!this.validate()) return;
 
-    console.log('Registro exitoso:', {
-      name: this.name(),
-      email: this.email(),
-      phone: this.phone(),
-      birthDate: this.birthDate(),
-      password: this.password()
+    this.isLoading.set(true);
+
+    // 5. Llamada REAL al backend para registrar al usuario
+    this.authService.register(this.name().trim(), this.email().trim(), this.password()).subscribe({
+      next: (res) => {
+        this.isLoading.set(false);
+        this.successMessage.set('Cuenta creada exitosamente. Redirigiendo al login...');
+        
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        // Atrapamos el error si el correo ya existe en la base de datos
+        if (err.status === 400 && err.error?.message) {
+          this.globalError.set(err.error.message);
+        } else {
+          this.globalError.set('Ocurrió un error al intentar crear la cuenta. Intenta más tarde.');
+        }
+      }
     });
-
-    this.successMessage.set('Cuenta creada exitosamente. Redirigiendo al login...');
-
-    setTimeout(() => {
-      this.router.navigate(['/login']);
-    }, 2000);
   }
 }

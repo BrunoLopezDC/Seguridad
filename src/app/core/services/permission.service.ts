@@ -1,91 +1,112 @@
-import { Injectable, signal } from '@angular/core';
-import { MOCK_USERS, CURRENT_USER_EMAIL, UserPermissions, MockUser } from '../mocks/auth.mock';
+import { Injectable, signal, inject, effect } from '@angular/core';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PermissionService {
+  private authService = inject(AuthService);
 
-  private currentUserEmail = signal<string>(CURRENT_USER_EMAIL);
-  private currentUser = signal<MockUser | null>(this.findUserByEmail(CURRENT_USER_EMAIL));
+  // Señales reactivas con la información REAL del usuario
+  public currentUserEmail = signal<string | null>(null);
+  public userPermissions = signal<string[]>([]);
 
-  constructor() {}
-
-  /**
-   * Obtener usuario actual
-   */
-  getCurrentUser(): MockUser | null {
-    return this.currentUser();
-  }
-
-  getCurrentUserEmail(): string {
-    return this.currentUserEmail();
-  }
-
-  /**
-   * Obtener permisos del usuario actual
-   */
-  getPermissions(): UserPermissions {
-    const user = this.getCurrentUser();
-    if (!user) {
-      return {
-        groupAdd: false,
-        groupEdit: false,
-        groupDelete: false,
-        ticketCreate: false,
-        ticketEdit: false,
-        ticketDelete: false,
-        userCreate: false,
-        userEdit: false,
-        userDelete: false
-      };
-    }
-    return user.permissions;
+  constructor() {
+    // El 'effect' se ejecuta automáticamente si 'isLoggedIn' cambia de false a true (o viceversa)
+    effect(() => {
+      if (this.authService.isLoggedIn()) {
+        this.loadPermissionsFromToken();
+      } else {
+        this.clearPermissions();
+      }
+    });
   }
 
   /**
-   * Verificar si el usuario actual tiene un permiso específico
+   * Lee el token guardado, lo decodifica y extrae los permisos.
    */
-  hasPermission(permission: keyof UserPermissions): boolean {
-    return this.getPermissions()[permission] as boolean;
-  }
+  private loadPermissionsFromToken() {
+    const token = this.authService.getToken();
+    if (!token) return;
 
-  /**
-   * Verificar múltiples permisos (AND: debe tener TODOS)
-   */
-  hasAllPermissions(...permissions: Array<keyof UserPermissions>): boolean {
-    return permissions.every(p => this.hasPermission(p));
-  }
+    try {
+      // 1. Extraemos la parte central del JWT (el Payload)
+      const payloadBase64Url = token.split('.')[1];
+      
+      // 2. Normalizamos caracteres por si es Base64Url
+      const base64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+      
+      // 3. Decodificamos el texto y lo convertimos a un objeto JSON
+      const payloadDecoded = atob(base64);
+      const payloadParams = JSON.parse(payloadDecoded);
 
-  /**
-   * Verificar múltiples permisos (OR: debe tener AL MENOS UNO)
-   */
-  hasAnyPermission(...permissions: Array<keyof UserPermissions>): boolean {
-    return permissions.some(p => this.hasPermission(p));
-  }
+      // 4. ¡Asignamos los datos reales extraídos de la base de datos!
+      this.currentUserEmail.set(payloadParams.correo);
+      this.userPermissions.set(payloadParams.permisos || []);
 
-  /**
-   * Cambiar usuario autenticado (solo para desarrollo)
-   */
-  setCurrentUser(email: string): void {
-    const user = this.findUserByEmail(email);
-    if (user) {
-      this.currentUserEmail.set(email);
-      this.currentUser.set(user);
+      // Lo imprimimos en consola solo para que lo veas con tus propios ojos 👀
+      console.log('✅ Permisos reales cargados en Angular:', this.userPermissions());
+    } catch (error) {
+      console.error('Error al decodificar el token:', error);
+      this.clearPermissions();
     }
   }
 
   /**
-   * Obtener todos los usuarios mock
+   * Limpia el rastro cuando el usuario sale.
    */
-  getAllUsers(): MockUser[] {
-    return MOCK_USERS;
+  private clearPermissions() {
+    this.currentUserEmail.set(null);
+    this.userPermissions.set([]);
   }
 
   /**
-   * Buscar usuario por email
+   * El método estrella. Tus componentes HTML lo usarán así:
+   * *ngIf="permissionService.hasPermission('groupEdit')"
    */
-  private findUserByEmail(email: string): MockUser | null {
-    return MOCK_USERS.find(u => u.email === email) ?? null;
+  hasPermission(permission: string): boolean {
+    return this.userPermissions().includes(permission);
+  }
+
+// =========================================================
+  // ADAPTADORES (Para que los componentes viejos no se rompan)
+  // =========================================================
+
+  // Convertimos el arreglo de strings del JWT en el objeto booleano que espera tu UI
+  getPermissions(): any {
+    const perms = this.userPermissions();
+    return {
+      groupAdd: perms.includes('groupAdd'),
+      groupEdit: perms.includes('groupEdit'),
+      groupDelete: perms.includes('groupDelete'),
+      ticketCreate: perms.includes('ticketCreate'),
+      ticketEdit: perms.includes('ticketEdit'),
+      ticketDelete: perms.includes('ticketDelete'),
+      userCreate: perms.includes('userCreate'),
+      userEdit: perms.includes('userEdit'),
+      userDelete: perms.includes('userDelete')
+    };
+  }
+
+  // Verifica si tiene AL MENOS UNO de los permisos de la lista
+  hasAnyPermission(...permissions: string[]): boolean {
+    return permissions.some(perm => this.hasPermission(perm));
+  }
+
+  // Devolvemos un objeto con la propiedad 'email' para que UserProfile no se queje
+  getCurrentUser(): any {
+    return { email: this.currentUserEmail() };
+  }
+
+  // STUBS TEMPORALES para el UserProfileComponent
+  getAllUsers(): any[] {
+    console.warn('getAllUsers está obsoleto. Falta conectar al backend.');
+    return []; 
+  }
+
+  // Ajustado a 3 argumentos para que coincida con la llamada de tu componente
+  updateUserPermissionByEmail(email: string, permission: string, value: boolean): boolean {
+    console.warn('updateUserPermissionByEmail está obsoleto. Falta conectar al backend.');
+    return false;
   }
 }

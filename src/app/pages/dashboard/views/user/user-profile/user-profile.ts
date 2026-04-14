@@ -1,6 +1,6 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -8,6 +8,9 @@ import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { DividerModule } from 'primeng/divider';
+import { PermissionService } from '../../../../../core/services/permission.service';
+import { UserService } from '../../../../../core/services/user.service';
+import { TicketService } from '../../../../../core/services/ticket.service'; // <-- Importado
 
 interface Ticket {
   id: number;
@@ -31,6 +34,7 @@ interface UserProfile {
 @Component({
   selector: 'app-user-profile',
   imports: [
+    CommonModule,
     DatePipe,
     CardModule,
     ButtonModule,
@@ -44,53 +48,89 @@ interface UserProfile {
   styleUrl: './user-profile.css'
 })
 export class UserProfileComponent implements OnInit {
-
   user = signal<UserProfile | null>(null);
+  
+  // Guardamos los permisos en un objeto para que tu HTML iterador funcione perfecto
+  targetPermissions = signal<Record<string, boolean>>({});
+  isLoading = signal<boolean>(false);
 
-  private allUsers: UserProfile[] = [
-    { id: 1, name: 'Admin Sistema', email: 'admin@seguridad.com', role: 'admin', fechaRegistro: new Date('2025-06-15'), telefono: '+52 555 123 4567', departamento: 'Desarrollo' },
-    { id: 2, name: 'Usuario Demo', email: 'usuario@seguridad.com', role: 'user', fechaRegistro: new Date('2025-08-20'), telefono: '+52 555 987 6543', departamento: 'Soporte' }
+  // <-- Signal para los tickets reales del usuario
+  assignedTickets = signal<Ticket[]>([]);
+
+  // Catálogo completo de permisos
+  private readonly ALL_PERMISSIONS_KEYS = [
+    'groupAdd', 'groupEdit', 'groupDelete', 
+    'ticketCreate', 'ticketEdit', 'ticketDelete', 
+    'userCreate', 'userEdit', 'userDelete'
   ];
-
-  private allTickets: Ticket[] = [
-    { id: 1, titulo: 'Error en login', estadoActual: 'abierto', prioridad: 'alta', fechaCreacion: new Date('2026-03-01'), fechaLimite: new Date('2026-03-10') },
-    { id: 2, titulo: 'Mejora en dashboard', estadoActual: 'en_progreso', prioridad: 'media', fechaCreacion: new Date('2026-03-03'), fechaLimite: new Date('2026-03-15') },
-    { id: 3, titulo: 'Bug en reportes', estadoActual: 'resuelto', prioridad: 'critica', fechaCreacion: new Date('2026-02-28'), fechaLimite: new Date('2026-03-05') },
-    { id: 4, titulo: 'Actualizar docs', estadoActual: 'abierto', prioridad: 'baja', fechaCreacion: new Date('2026-03-05'), fechaLimite: new Date('2026-03-20') },
-    { id: 5, titulo: 'Optimizar DB', estadoActual: 'en_progreso', prioridad: 'alta', fechaCreacion: new Date('2026-03-02'), fechaLimite: new Date('2026-03-12') },
-    { id: 6, titulo: 'Nueva landing', estadoActual: 'cerrado', prioridad: 'media', fechaCreacion: new Date('2026-02-25'), fechaLimite: new Date('2026-03-01') }
-  ];
-
-  private userTicketsMap: Record<number, number[]> = {
-    1: [1, 3, 4],
-    2: [2, 5, 6]
-  };
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly permissionService: PermissionService,
+    private readonly userService: UserService,
+    private readonly ticketService: TicketService // <-- Inyectado
   ) {}
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       const userId = +params['id'];
-      this.loadUser(userId);
+      this.loadRealUser(userId);
+      this.loadUserTickets(userId); // <-- Llamamos a la carga de tickets
     });
   }
 
-  private loadUser(id: number): void {
-    const found = this.allUsers.find(u => u.id === id);
-    if (found) {
-      this.user.set(found);
-    } else {
-      this.router.navigate(['/dashboard/user']);
-    }
+  private loadRealUser(id: number): void {
+    this.isLoading.set(true);
+    this.userService.getUserProfile(id).subscribe({
+      next: (dbUser) => {
+        this.user.set({
+          id: dbUser.idUsuario,
+          name: dbUser.nombreCompleto,
+          email: dbUser.correoElectronico,
+          role: dbUser.departamento === 'IT' || dbUser.idUsuario === 1 ? 'admin' : 'user',
+          fechaRegistro: new Date(dbUser.fechaCreacion),
+          departamento: dbUser.departamento || 'Sin asignar'
+        });
+
+        const permsObj: Record<string, boolean> = {};
+        this.ALL_PERMISSIONS_KEYS.forEach(key => {
+          permsObj[key] = dbUser.permisos.includes(key);
+        });
+        
+        this.targetPermissions.set(permsObj);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error cargando usuario', err);
+        this.router.navigate(['/dashboard/user']);
+      }
+    });
+  }
+
+  // <-- Nueva función para cargar y filtrar tickets reales
+  private loadUserTickets(userId: number): void {
+    this.ticketService.getTickets().subscribe({
+      next: (tickets) => {
+        const userTickets: Ticket[] = tickets
+          .filter((t: any) => t.idUsuarioAsignado === userId)
+          .map((t: any) => ({
+            id: t.idTicket,
+            titulo: t.titulo,
+            estadoActual: t.estadoActual,
+            prioridad: t.prioridad,
+            fechaCreacion: new Date(t.fechaCreacion),
+            fechaLimite: t.fechaLimite ? new Date(t.fechaLimite) : new Date()
+          }));
+        
+        this.assignedTickets.set(userTickets);
+      },
+      error: (err) => console.error('Error al cargar los tickets del usuario', err)
+    });
   }
 
   get userTickets(): Ticket[] {
-    if (!this.user()) return [];
-    const ticketIds = this.userTicketsMap[this.user()!.id] || [];
-    return this.allTickets.filter(t => ticketIds.includes(t.id));
+    return this.assignedTickets(); // <-- Ahora retorna el Signal
   }
 
   get stats() {
@@ -102,6 +142,76 @@ export class UserProfileComponent implements OnInit {
       resueltos: tickets.filter(t => t.estadoActual === 'resuelto').length,
       cerrados: tickets.filter(t => t.estadoActual === 'cerrado').length
     };
+  }
+
+  canViewPermissions(): boolean {
+    return this.permissionService.hasPermission('userEdit');
+  }
+
+  canEditPermissions(): boolean {
+    return this.permissionService.hasPermission('userEdit');
+  }
+
+  togglePermission(permissionKey: string): void {
+    if (!this.canEditPermissions()) return;
+
+    const currentUserData = this.user();
+    if (!currentUserData) return;
+
+    const currentPerms = this.targetPermissions();
+    const newValue = !currentPerms[permissionKey];
+
+    this.targetPermissions.set({
+      ...currentPerms,
+      [permissionKey]: newValue
+    });
+
+    this.userService.toggleUserPermission(currentUserData.id, permissionKey, newValue).subscribe({
+      next: () => console.log(`Permiso ${permissionKey} actualizado a ${newValue} en BD.`),
+      error: (err) => {
+        console.error('Falló la actualización', err);
+        this.targetPermissions.set(currentPerms);
+      }
+    });
+  }
+
+  countPermissions(): number {
+    return Object.values(this.targetPermissions()).filter(Boolean).length;
+  }
+
+  getCategoriesList(): string[] {
+    return ['Grupos', 'Tickets', 'Usuarios'];
+  }
+
+  getPermissionLabel(key: string): string {
+    const labels: Record<string, string> = {
+      groupAdd: 'Crear Grupo', groupEdit: 'Editar Grupo', groupDelete: 'Eliminar Grupo',
+      ticketCreate: 'Crear Ticket', ticketEdit: 'Editar Ticket', ticketDelete: 'Eliminar Ticket',
+      userCreate: 'Crear Usuario', userEdit: 'Editar Usuario', userDelete: 'Eliminar Usuario'
+    };
+    return labels[key] || key;
+  }
+
+  getPermissionCategory(key: string): string {
+    if (key.startsWith('group')) return 'Grupos';
+    if (key.startsWith('ticket')) return 'Tickets';
+    if (key.startsWith('user')) return 'Usuarios';
+    return 'Otros';
+  }
+
+  getGroupedPermissions(): Record<string, Array<{ key: string; label: string; value: boolean }>> {
+    const grouped: Record<string, Array<{ key: string; label: string; value: boolean }>> = {
+      Grupos: [], Tickets: [], Usuarios: []
+    };
+
+    Object.entries(this.targetPermissions()).forEach(([key, value]) => {
+      const category = this.getPermissionCategory(key);
+      if (grouped[category]) {
+        grouped[category].push({ key, label: this.getPermissionLabel(key), value });
+      }
+    });
+
+    return grouped;
   }
 
   goBack(): void {
@@ -126,27 +236,29 @@ export class UserProfileComponent implements OnInit {
 
   getEstadoSeverity(estado: string): 'success' | 'info' | 'warn' | 'danger' {
     const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'abierto': 'info', 'en_progreso': 'warn', 'resuelto': 'success', 'cerrado': 'danger'
+      abierto: 'info', en_progreso: 'warn', resuelto: 'success', cerrado: 'danger'
     };
     return map[estado] || 'info';
   }
 
   getEstadoLabel(estado: string): string {
     const map: Record<string, string> = {
-      'abierto': 'Pendiente', 'en_progreso': 'En Progreso', 'resuelto': 'Revisión', 'cerrado': 'Cerrado'
+      abierto: 'Pendiente', en_progreso: 'En Progreso', resuelto: 'Revisión', cerrado: 'Cerrado'
     };
     return map[estado] || estado;
   }
 
   getPrioridadSeverity(p: string): 'success' | 'info' | 'warn' | 'danger' {
     const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'baja': 'success', 'media': 'info', 'alta': 'warn', 'critica': 'danger'
+      baja: 'success', media: 'info', alta: 'warn', critica: 'danger'
     };
     return map[p] || 'info';
   }
 
   getPrioridadLabel(p: string): string {
-    const map: Record<string, string> = { 'baja': 'Baja', 'media': 'Media', 'alta': 'Alta', 'critica': 'Crítica' };
+    const map: Record<string, string> = {
+      baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica'
+    };
     return map[p] || p;
   }
 }

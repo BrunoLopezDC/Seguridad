@@ -1,7 +1,6 @@
 @if (ticket()) {
   <div class="detail-container">
 
-    <!-- Header -->
     <div class="detail-header">
       <div class="header-left">
         <p-button
@@ -17,10 +16,12 @@
             <p-tag
               [value]="getEstadoLabel(ticket()!.estadoActual)"
               [severity]="getEstadoSeverity(ticket()!.estadoActual)"
+              styleClass="status-tag"
             ></p-tag>
             <p-tag
               [value]="getPrioridadLabel(ticket()!.prioridad)"
               [severity]="getPrioridadSeverity(ticket()!.prioridad)"
+              styleClass="status-tag"
             ></p-tag>
           </div>
         </div>
@@ -34,7 +35,6 @@
       }
     </div>
 
-    <!-- Mensajes -->
     @if (successMessage()) {
       <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
     }
@@ -44,15 +44,14 @@
 
     <div class="detail-grid">
 
-      <!-- Columna principal: Detalles del ticket -->
       <div class="detail-main">
         
         @if (isEditing() && editableTicket) {
-          <!-- Modo edición -->
           <p-card styleClass="detail-card">
             <ng-template #header>
-              <div class="card-header">
-                <h2>Editar Ticket</h2>
+              <div class="card-header-small">
+                <i class="pi pi-pencil"></i>
+                <h3>Editar Ticket</h3>
               </div>
             </ng-template>
 
@@ -75,7 +74,7 @@
               </div>
 
               <div class="field">
-                <label class="field-label">Descripción *</label>
+                <label class="field-label-top">Descripción *</label>
                 <textarea
                   pTextarea
                   [(ngModel)]="editableTicket.descripcion"
@@ -89,7 +88,7 @@
 
               <div class="field-row">
                 <div class="field">
-                  <label class="field-label">Estado</label>
+                  <label class="field-label-top">Estado</label>
                   <p-select
                     [(ngModel)]="editableTicket.estadoActual"
                     [options]="estadosOptions"
@@ -102,7 +101,7 @@
                 </div>
 
                 <div class="field">
-                  <label class="field-label">Prioridad</label>
+                  <label class="field-label-top">Prioridad</label>
                   <p-select
                     [(ngModel)]="editableTicket.prioridad"
                     [options]="prioridadOptions"
@@ -116,20 +115,20 @@
               </div>
 
               <div class="field">
-                <label class="field-label">Asignado a</label>
-                <p-select
-                  [(ngModel)]="editableTicket.asignadoA"
-                  [options]="usuariosOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Selecciona usuario"
-                  styleClass="select-full"
-                  appendTo="body"
-                />
-              </div>
+  <label class="field-label-top">Asignado a</label>
+  <p-select
+    [(ngModel)]="editableTicket.idUsuarioAsignado" 
+    [options]="usuariosOptions"
+    optionLabel="label"
+    optionValue="value"
+    placeholder="Selecciona usuario"
+    styleClass="select-full"
+    appendTo="body"
+  />
+</div>
 
               <div class="field">
-                <label class="field-label">Fecha Límite</label>
+                <label class="field-label-top">Fecha Límite</label>
                 <p-datepicker
                   [(ngModel)]="editableTicket.fechaLimite"
                   [minDate]="minDate"
@@ -143,7 +142,7 @@
               </div>
 
               <div class="field">
-                <label class="field-label">Comentarios</label>
+                <label class="field-label-top">Comentarios</label>
                 <textarea
                   pTextarea
                   [(ngModel)]="editableTicket.comentarios"
@@ -156,7 +155,7 @@
                   label="Cancelar"
                   icon="pi pi-times"
                   severity="secondary"
-                  [outlined]="true"
+                  [text]="true"
                   (onClick)="cancelEdit()"
                 ></p-button>
                 <p-button
@@ -170,9 +169,6 @@
           </p-card>
 
         } @else {
-          <!-- Modo lectura con cards separadas -->
-          
-          <!-- Información básica -->
           <p-card styleClass="info-card">
             <ng-template #header>
               <div class="card-header-small">
@@ -184,17 +180,16 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Título</span>
-                <span class="info-value">{{ ticket()!.titulo }}</span>
+                <span class="info-value title-value">{{ ticket()!.titulo }}</span>
               </div>
 
               <div class="info-item full-width">
                 <span class="info-label">Descripción</span>
-                <span class="info-value">{{ ticket()!.descripcion }}</span>
+                <span class="info-value desc-value">{{ ticket()!.descripcion }}</span>
               </div>
             </div>
           </p-card>
 
-          <!-- Estado y Asignación -->
           <p-card styleClass="info-card">
             <ng-template #header>
               <div class="card-header-small">
@@ -206,23 +201,29 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Estado</span>
-                <p-tag
-                  [value]="getEstadoLabel(ticket()!.estadoActual)"
-                  [severity]="getEstadoSeverity(ticket()!.estadoActual)"
-                ></p-tag>
+                <div>
+                  <p-tag
+                    [value]="getEstadoLabel(ticket()!.estadoActual)"
+                    [severity]="getEstadoSeverity(ticket()!.estadoActual)"
+                    styleClass="status-tag"
+                  ></p-tag>
+                </div>
               </div>
 
               <div class="info-item">
                 <span class="info-label">Prioridad</span>
-                <p-tag
-                  [value]="getPrioridadLabel(ticket()!.prioridad)"
-                  [severity]="getPrioridadSeverity(ticket()!.prioridad)"
-                ></p-tag>
+                <div>
+                  <p-tag
+                    [value]="getPrioridadLabel(ticket()!.prioridad)"
+                    [severity]="getPrioridadSeverity(ticket()!.prioridad)"
+                    styleClass="status-tag"
+                  ></p-tag>
+                </div>
               </div>
 
               <div class="info-item full-width">
                 <span class="info-label">Asignado a</span>
-                <span class="info-value">
+                <span class="info-value user-value">
                   <i class="pi pi-user"></i>
                   {{ ticket()!.asignadoA || 'Sin asignar' }}
                 </span>
@@ -230,7 +231,6 @@
             </div>
           </p-card>
 
-          <!-- Fechas -->
           <p-card styleClass="info-card">
             <ng-template #header>
               <div class="card-header-small">
@@ -252,7 +252,6 @@
             </div>
           </p-card>
 
-          <!-- Comentarios -->
           <p-card styleClass="info-card">
             <ng-template #header>
               <div class="card-header-small">
@@ -262,62 +261,66 @@
             </ng-template>
 
             <div class="comments-content">
-              {{ ticket()!.comentarios || 'Sin comentarios' }}
+              @if (ticket()!.comentarios) {
+                {{ ticket()!.comentarios }}
+              } @else {
+                <span class="text-muted">Sin comentarios añadidos.</span>
+              }
             </div>
           </p-card>
-
         }
       </div>
 
-            <!-- Columna lateral: Historial de cambios -->
       <div class="detail-sidebar">
         <p-card styleClass="history-card">
           <ng-template #header>
-            <div class="card-header">
-              <h2><i class="pi pi-history"></i> Historial de Cambios</h2>
+            <div class="card-header-small">
+              <i class="pi pi-history"></i>
+              <h3>Historial de Cambios</h3>
             </div>
           </ng-template>
 
-          @if (ticket()!.historialCambios.length > 0) {
-            <p-timeline [value]="ticket()!.historialCambios" align="left">
-              <ng-template #opposite let-cambio>
-                <div class="timeline-date-wrapper">
-                  <small class="timeline-date">{{ cambio.fecha | date:'dd/MM/yyyy' }}</small>
-                  <small class="timeline-time">{{ cambio.fecha | date:'HH:mm' }}</small>
-                </div>
-              </ng-template>
-              <ng-template #content let-cambio>
-                <div class="timeline-content">
-                  <div class="timeline-header">
-                    <strong>{{ cambio.campo }}</strong>
+          <div class="history-content">
+            @if (ticket()!.historialCambios.length > 0) {
+              <p-timeline [value]="ticket()!.historialCambios" align="left">
+                <ng-template #opposite let-cambio>
+                  <div class="timeline-date-wrapper">
+                    <span class="timeline-date">{{ cambio.fecha | date:'dd/MM/yyyy' }}</span>
+                    <span class="timeline-time">{{ cambio.fecha | date:'HH:mm' }}</span>
                   </div>
-                  <div class="timeline-change">
-                    <span class="old-value">{{ cambio.valorAnterior }}</span>
-                    <i class="pi pi-arrow-right"></i>
-                    <span class="new-value">{{ cambio.valorNuevo }}</span>
+                </ng-template>
+                <ng-template #content let-cambio>
+                  <div class="timeline-content">
+                    <div class="timeline-header">
+                      <strong>{{ cambio.campo }}</strong>
+                    </div>
+                    <div class="timeline-change">
+                      <span class="old-value">{{ cambio.valorAnterior }}</span>
+                      <i class="pi pi-arrow-right"></i>
+                      <span class="new-value">{{ cambio.valorNuevo }}</span>
+                    </div>
+                    <div class="timeline-user">
+                      <i class="pi pi-user"></i>
+                      <span>{{ cambio.usuario }}</span>
+                    </div>
                   </div>
-                  <div class="timeline-user">
-                    <i class="pi pi-user"></i>
-                    <span>{{ cambio.usuario }}</span>
-                  </div>
-                </div>
-              </ng-template>
-            </p-timeline>
-          } @else {
-            <div class="empty-history">
-              <i class="pi pi-info-circle"></i>
-              <p>No hay cambios registrados</p>
-            </div>
-          }
-
+                </ng-template>
+              </p-timeline>
+            } @else {
+              <div class="empty-state">
+                <i class="pi pi-clock"></i>
+                <p>No hay cambios registrados</p>
+              </div>
+            }
+          </div>
         </p-card>
       </div>
     </div>
 
   </div>
 } @else {
-  <div class="loading-state">
-    <i class="pi pi-spin pi-spinner"></i>
-    <p>Cargando ticket...</p>
+  <div class="empty-state loading-full">
+    <i class="pi pi-spin pi-spinner loading-icon"></i>
+    <p>Cargando información del ticket...</p>
   </div>
 }

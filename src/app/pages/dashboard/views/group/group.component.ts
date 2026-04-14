@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
@@ -14,7 +14,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { Router } from '@angular/router';
 import { PermissionService } from '../../../../core/services/permission.service';
-import { UserPermissions } from '../../../../core/mocks/auth.mock';
+import { GroupService } from '../../../../core/services/group.service';
 
 interface Group {
   id: number;
@@ -44,13 +44,10 @@ interface Group {
   templateUrl: './group.component.html',
   styleUrl: './group.component.css'
 })
-export class GroupComponent {
+export class GroupComponent implements OnInit {
 
-  groups = signal<Group[]>([
-    { id: 1, name: 'Administradores', description: 'Grupo con acceso total', maxMembers: 5, active: true },
-    { id: 2, name: 'Soporte',         description: 'Atención a usuarios',    maxMembers: 10, active: true },
-    { id: 3, name: 'Auditores',       description: 'Solo lectura',           maxMembers: 8, active: false }
-  ]);
+  groups = signal<Group[]>([]);
+  isLoading = signal<boolean>(false);
 
   dialogVisible = signal<boolean>(false);
   isEditing = signal<boolean>(false);
@@ -64,19 +61,40 @@ export class GroupComponent {
   constructor(
     private readonly confirmationService: ConfirmationService,
     private readonly router: Router,
-    private readonly permissionService: PermissionService
+    private readonly permissionService: PermissionService,
+    private readonly groupService: GroupService
   ) {}
 
-  /**
-   * Getter de permisos
-   */
-  get permissions(): UserPermissions {
+  ngOnInit(): void {
+    this.loadGroups();
+  }
+
+  loadGroups(): void {
+    this.isLoading.set(true);
+    this.groupService.getGroups().subscribe({
+      next: (data) => {
+        const mapped = data.map(g => ({
+          id: g.idGrupo,
+          name: g.nombreGrupo,
+          description: g.descripcion || 'Sin descripción',
+          maxMembers: 10, // Dato estático visual por ahora
+          active: true // Dato estático visual por ahora
+        }));
+        this.groups.set(mapped);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error cargando grupos', err);
+        this.showError('Error al conectar con el servidor.');
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  get permissions(): any {
     return this.permissionService.getPermissions();
   }
 
-  /**
-   * Verificar permisos
-   */
   canAddGroup(): boolean {
     return this.permissionService.hasPermission('groupAdd');
   }
@@ -89,16 +107,8 @@ export class GroupComponent {
     return this.permissionService.hasPermission('groupDelete');
   }
 
-  /**
-   * Helpers privados
-   */
   private emptyGroup(): Group {
     return { id: 0, name: '', description: '', maxMembers: 10, active: true };
-  }
-
-  private nextId(): number {
-    const ids = this.groups().map(g => g.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
   }
 
   private showSuccess(msg: string): void {
@@ -111,15 +121,11 @@ export class GroupComponent {
     setTimeout(() => this.errorMessage.set(''), 3000);
   }
 
-  /**
-   * CRUD operations
-   */
   openNew(): void {
     if (!this.canAddGroup()) {
       this.showError('No tienes permiso para crear grupos.');
       return;
     }
-
     this.currentGroup = this.emptyGroup();
     this.isEditing.set(false);
     this.submitted.set(false);
@@ -131,7 +137,6 @@ export class GroupComponent {
       this.showError('No tienes permiso para editar grupos.');
       return;
     }
-
     this.currentGroup = { ...group };
     this.isEditing.set(true);
     this.submitted.set(false);
@@ -151,24 +156,39 @@ export class GroupComponent {
         this.showError('No tienes permiso para editar grupos.');
         return;
       }
-
-      this.groups.update(list =>
-        list.map(g => g.id === this.currentGroup.id ? { ...this.currentGroup } : g)
-      );
-      this.showSuccess('Grupo actualizado correctamente.');
+      
+      // Llamada real al backend para EDITAR
+      this.groupService.updateGroup(this.currentGroup.id, this.currentGroup.name, this.currentGroup.description).subscribe({
+        next: () => {
+          this.showSuccess('Grupo actualizado correctamente.');
+          this.loadGroups();
+          this.dialogVisible.set(false);
+        },
+        error: (err) => {
+          console.error('Error actualizando grupo', err);
+          this.showError('Ocurrió un error al actualizar el grupo.');
+        }
+      });
+      
     } else {
       if (!this.canAddGroup()) {
         this.showError('No tienes permiso para crear grupos.');
         return;
       }
 
-      const newGroup: Group = { ...this.currentGroup, id: this.nextId() };
-      this.groups.update(list => [...list, newGroup]);
-      this.showSuccess('Grupo creado correctamente.');
+      // Llamada real al backend para CREAR
+      this.groupService.createGroup(this.currentGroup.name, this.currentGroup.description).subscribe({
+        next: () => {
+          this.showSuccess('Grupo creado correctamente.');
+          this.loadGroups(); 
+          this.dialogVisible.set(false);
+        },
+        error: (err) => {
+          console.error('Error creando grupo', err);
+          this.showError('Ocurrió un error al crear el grupo.');
+        }
+      });
     }
-
-    this.dialogVisible.set(false);
-    this.submitted.set(false);
   }
 
   confirmDelete(group: Group): void {
@@ -185,8 +205,17 @@ export class GroupComponent {
       rejectLabel: 'Cancelar',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.groups.update(list => list.filter(g => g.id !== group.id));
-        this.showSuccess('Grupo eliminado correctamente.');
+        // Llamada real al backend para ELIMINAR
+        this.groupService.deleteGroup(group.id).subscribe({
+          next: () => {
+            this.showSuccess('Grupo eliminado correctamente.');
+            this.loadGroups();
+          },
+          error: (err) => {
+            console.error('Error eliminando grupo', err);
+            this.showError('No se pudo eliminar el grupo.');
+          }
+        });
       }
     });
   }

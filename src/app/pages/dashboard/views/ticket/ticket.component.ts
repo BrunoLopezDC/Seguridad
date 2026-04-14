@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DatePipe, SlicePipe, NgClass } from '@angular/common';
@@ -15,166 +15,49 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ConfirmationService } from 'primeng/api';
 import { PermissionService } from '../../../../core/services/permission.service';
-import { UserPermissions } from '../../../../core/mocks/auth.mock';
-
-interface Ticket {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  estadoActual: string;
-  asignadoA: string;
-  prioridad: string;
-  fechaCreacion: Date;
-  fechaLimite: Date;
-  comentarios: string;
-  historialCambios: HistorialCambio[];
-}
-
-interface HistorialCambio {
-  fecha: Date;
-  campo: string;
-  valorAnterior: string;
-  valorNuevo: string;
-  usuario: string;
-}
+import { TicketService } from '../../../../core/services/ticket.service';
+import { UserService } from '../../../../core/services/user.service';
 
 interface SelectOption {
   label: string;
-  value: string;
+  value: any;
 }
 
 interface KanbanColumn {
   id: string;
   titulo: string;
   estado: string;
-  tickets: Ticket[];
+  tickets: any[];
   icon: string;
   color: string;
 }
 
-interface ViewOption {
-  label: string;
-  value: string;
-  icon: string;
-}
-
 @Component({
   selector: 'app-ticket',
+  standalone: true,
   imports: [
-    FormsModule,
-    DatePipe,
-    SlicePipe,
-    NgClass,
-    DragDropModule,
-    CardModule,
-    InputTextModule,
-    Textarea,
-    FloatLabelModule,
-    ButtonModule,
-    TableModule,
-    DialogModule,
-    MessageModule,
-    TagModule,
-    TooltipModule,
-    SelectModule,
-    DatePickerModule,
-    SelectButtonModule,
-    ConfirmDialogModule
+    FormsModule, DatePipe, SlicePipe, NgClass, DragDropModule, CardModule,
+    InputTextModule, Textarea, FloatLabelModule, ButtonModule, TableModule,
+    DialogModule, MessageModule, TagModule, TooltipModule, SelectModule,
+    DatePickerModule, ToggleSwitchModule, ConfirmDialogModule
   ],
   providers: [ConfirmationService],
   templateUrl: './ticket.component.html',
   styleUrl: './ticket.component.css'
 })
-export class TicketComponent {
+export class TicketComponent implements OnInit {
 
-  // Vista actual: 'lista' o 'kanban'
-  currentView = signal<string>('lista');
+  private ticketService = inject(TicketService);
+  private userService = inject(UserService);
 
-  viewOptions: ViewOption[] = [
-    { label: 'Lista', value: 'lista', icon: 'pi pi-list' },
-    { label: 'Kanban', value: 'kanban', icon: 'pi pi-th-large' }
-  ];
+  isKanban = signal<boolean>(false);
+  tickets = signal<any[]>([]);
+  isLoading = signal<boolean>(false);
 
-  tickets = signal<Ticket[]>([
-    {
-      id: 1,
-      titulo: 'Error en login',
-      descripcion: 'Los usuarios no pueden iniciar sesión desde la última actualización del sistema',
-      estadoActual: 'abierto',
-      asignadoA: 'Juan Pérez',
-      prioridad: 'alta',
-      fechaCreacion: new Date('2026-03-01'),
-      fechaLimite: new Date('2026-03-10'),
-      comentarios: 'Revisar el servicio de autenticación',
-      historialCambios: []
-    },
-    {
-      id: 2,
-      titulo: 'Mejora en dashboard',
-      descripcion: 'Agregar gráficas de estadísticas para mejorar la visualización de datos',
-      estadoActual: 'en_progreso',
-      asignadoA: 'María García',
-      prioridad: 'media',
-      fechaCreacion: new Date('2026-03-03'),
-      fechaLimite: new Date('2026-03-15'),
-      comentarios: 'Usar Chart.js',
-      historialCambios: []
-    },
-    {
-      id: 3,
-      titulo: 'Bug en reportes',
-      descripcion: 'Los reportes no se generan correctamente y muestran datos erróneos',
-      estadoActual: 'resuelto',
-      asignadoA: 'Carlos López',
-      prioridad: 'critica',
-      fechaCreacion: new Date('2026-02-28'),
-      fechaLimite: new Date('2026-03-05'),
-      comentarios: 'Urgente, afecta a clientes',
-      historialCambios: []
-    },
-    {
-      id: 4,
-      titulo: 'Actualizar documentación',
-      descripcion: 'Documentar nuevas funcionalidades del sistema',
-      estadoActual: 'abierto',
-      asignadoA: 'Juan Pérez',
-      prioridad: 'baja',
-      fechaCreacion: new Date('2026-03-05'),
-      fechaLimite: new Date('2026-03-20'),
-      comentarios: '',
-      historialCambios: []
-    },
-    {
-      id: 5,
-      titulo: 'Optimizar consultas DB',
-      descripcion: 'Las consultas a la base de datos son muy lentas',
-      estadoActual: 'en_progreso',
-      asignadoA: 'María García',
-      prioridad: 'alta',
-      fechaCreacion: new Date('2026-03-02'),
-      fechaLimite: new Date('2026-03-12'),
-      comentarios: 'Agregar índices',
-      historialCambios: []
-    },
-    {
-      id: 6,
-      titulo: 'Diseño de nueva landing',
-      descripcion: 'Rediseñar página principal del sitio',
-      estadoActual: 'cerrado',
-      asignadoA: 'Carlos López',
-      prioridad: 'media',
-      fechaCreacion: new Date('2026-02-25'),
-      fechaLimite: new Date('2026-03-01'),
-      comentarios: 'Completado',
-      historialCambios: []
-    }
-  ]);
-
-  // Columnas Kanban
   columns = signal<KanbanColumn[]>([
     { id: 'col-abierto', titulo: 'Pendiente', estado: 'abierto', tickets: [], icon: 'pi-inbox', color: '#3b82f6' },
     { id: 'col-en-progreso', titulo: 'En Progreso', estado: 'en_progreso', tickets: [], icon: 'pi-clock', color: '#f59e0b' },
@@ -182,11 +65,10 @@ export class TicketComponent {
     { id: 'col-cerrado', titulo: 'Hecho', estado: 'cerrado', tickets: [], icon: 'pi-times-circle', color: '#ef4444' }
   ]);
 
-  // Filtros
   searchText = signal<string>('');
   selectedEstado = signal<string | null>(null);
   selectedPrioridad = signal<string | null>(null);
-  selectedAsignado = signal<string | null>(null);
+  selectedAsignado = signal<any | null>(null);
 
   dialogVisible = signal<boolean>(false);
   submitted = signal<boolean>(false);
@@ -207,16 +89,12 @@ export class TicketComponent {
     { label: 'Crítica', value: 'critica' }
   ];
 
-  usuariosOptions: SelectOption[] = [
-    { label: 'Juan Pérez', value: 'Juan Pérez' },
-    { label: 'María García', value: 'María García' },
-    { label: 'Carlos López', value: 'Carlos López' }
-  ];
+  // Se mantiene como array plano para no romper el HTML
+  usuariosOptions: SelectOption[] = [];
 
   maxDate = new Date();
   minDate = new Date();
-
-  currentTicket: Ticket = this.emptyTicket();
+  currentTicket: any = this.emptyTicket();
 
   constructor(
     private readonly router: Router,
@@ -224,31 +102,45 @@ export class TicketComponent {
     private readonly confirmationService: ConfirmationService
   ) {
     this.minDate.setDate(this.minDate.getDate() + 1);
-    this.updateKanbanColumns();
   }
 
-  /**
-   * Getters de permisos
-   */
-  get permissions(): UserPermissions {
-    return this.permissionService.getPermissions();
+  ngOnInit(): void {
+    this.loadData();
   }
 
-  canCreateTicket(): boolean {
-    return this.permissionService.hasPermission('ticketCreate');
+  loadData(): void {
+    this.isLoading.set(true);
+    this.ticketService.getTickets().subscribe({
+      next: (data) => {
+        this.tickets.set(data);
+        this.updateKanbanColumns();
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.showError('Error al cargar tickets.');
+        this.isLoading.set(false);
+      }
+    });
+
+    this.userService.getUsers().subscribe(users => {
+  const options = users.map(u => ({ 
+    label: u.nombreCompleto, 
+    value: u.idUsuario 
+  }));
+
+  // En lugar de asignar directo, lo envolvemos en un setTimeout
+  // Esto evita el error NG0100 sin cambiar el tipo de variable ni el HTML
+  setTimeout(() => {
+    this.usuariosOptions = options;
+  }, 0);
+});
   }
 
-  canEditTicket(): boolean {
-    return this.permissionService.hasPermission('ticketEdit');
-  }
+  get permissions() { return this.permissionService.getPermissions(); }
+  canCreateTicket() { return this.permissionService.hasPermission('ticketCreate'); }
+  canEditTicket() { return this.permissionService.hasPermission('ticketEdit'); }
+  canDeleteTicket() { return this.permissionService.hasPermission('ticketDelete'); }
 
-  canDeleteTicket(): boolean {
-    return this.permissionService.hasPermission('ticketDelete');
-  }
-
-  /**
-   * Actualizar columnas Kanban cuando cambian los tickets
-   */
   updateKanbanColumns(): void {
     const cols = this.columns();
     cols.forEach(col => {
@@ -257,77 +149,51 @@ export class TicketComponent {
     this.columns.set([...cols]);
   }
 
-  /**
-   * Cambio de vista
-   */
   onViewChange(): void {
-    if (this.currentView() === 'kanban') {
-      this.updateKanbanColumns();
-    }
+    if (this.isKanban()) this.updateKanbanColumns();
   }
 
-  /**
-   * Drag & Drop Kanban
-   */
-  drop(event: CdkDragDrop<Ticket[]>, targetColumn: KanbanColumn): void {
+  setKanbanView(value: boolean): void {
+    this.isKanban.set(value);
+    this.onViewChange();
+  }
+
+  drop(event: CdkDragDrop<any[]>, targetColumn: KanbanColumn): void {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
       const ticket = event.previousContainer.data[event.previousIndex];
-      const oldState = ticket.estadoActual;
-
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
-
-      // Actualizar estado del ticket
-      ticket.estadoActual = targetColumn.estado;
-
-      // Actualizar el ticket en la lista principal
-      this.tickets.update(list =>
-        list.map(t => t.id === ticket.id ? { ...t, estadoActual: targetColumn.estado } : t)
-      );
-
-      this.showSuccess(`Ticket #${ticket.id} movido a "${targetColumn.titulo}"`);
+      this.ticketService.updateTicket(ticket.idTicket, { estadoActual: targetColumn.estado }).subscribe({
+        next: () => {
+          transferArrayItem(
+            event.previousContainer.data,
+            event.container.data,
+            event.previousIndex,
+            event.currentIndex
+          );
+          ticket.estadoActual = targetColumn.estado;
+          this.tickets.set([...this.tickets()]); // Notificar cambio a signals
+          this.showSuccess(`Ticket #${ticket.idTicket} movido a "${targetColumn.titulo}"`);
+        },
+        error: () => this.showError('No se pudo actualizar el estado.')
+      });
     }
-
-    this.columns.set([...this.columns()]);
   }
 
-  getConnectedLists(): string[] {
-    return this.columns().map(col => col.id);
-  }
+  getConnectedLists(): string[] { return this.columns().map(col => col.id); }
 
-  /**
-   * Computed: tickets filtrados
-   */
-  get filteredTickets(): Ticket[] {
+  get filteredTickets(): any[] {
     let result = this.tickets();
-
     if (this.searchText()) {
       const search = this.searchText().toLowerCase();
-      result = result.filter(t =>
-        t.titulo.toLowerCase().includes(search) ||
-        t.descripcion.toLowerCase().includes(search) ||
-        t.id.toString().includes(search)
+      result = result.filter(t => 
+        t.titulo.toLowerCase().includes(search) || 
+        t.idTicket.toString().includes(search)
       );
     }
-
-    if (this.selectedEstado()) {
-      result = result.filter(t => t.estadoActual === this.selectedEstado());
-    }
-
-    if (this.selectedPrioridad()) {
-      result = result.filter(t => t.prioridad === this.selectedPrioridad());
-    }
-
-    if (this.selectedAsignado()) {
-      result = result.filter(t => t.asignadoA === this.selectedAsignado());
-    }
-
+    if (this.selectedEstado()) result = result.filter(t => t.estadoActual === this.selectedEstado());
+    if (this.selectedPrioridad()) result = result.filter(t => t.prioridad === this.selectedPrioridad());
+    if (this.selectedAsignado()) result = result.filter(t => t.idUsuarioAsignado === this.selectedAsignado());
     return result;
   }
 
@@ -342,135 +208,71 @@ export class TicketComponent {
     return !!(this.searchText() || this.selectedEstado() || this.selectedPrioridad() || this.selectedAsignado());
   }
 
-  /**
-   * Abrir dialog para crear ticket
-   */
   openNew(): void {
-    if (!this.canCreateTicket()) {
-      this.showError('No tienes permiso para crear tickets.');
-      return;
-    }
-
+    if (!this.canCreateTicket()) return;
     this.currentTicket = this.emptyTicket();
     this.submitted.set(false);
     this.dialogVisible.set(true);
   }
 
-  /**
-   * Guardar ticket nuevo
-   */
   saveTicket(): void {
     this.submitted.set(true);
+    if (!this.currentTicket.titulo.trim() || !this.currentTicket.descripcion.trim()) return;
 
-    if (!this.currentTicket.titulo.trim() || !this.currentTicket.descripcion.trim()) {
-      this.showError('Completa los campos obligatorios (título y descripción).');
-      return;
-    }
-
-    const newTicket: Ticket = {
+    const dataToSend = {
       ...this.currentTicket,
-      id: this.nextId(),
-      fechaCreacion: new Date()
+      // Mapeamos el campo del formulario al que espera el MS
+      idUsuarioAsignado: this.currentTicket.idUsuarioAsignado
     };
 
-    this.tickets.update(list => [...list, newTicket]);
-    this.updateKanbanColumns();
-    this.showSuccess('Ticket creado correctamente.');
-    this.dialogVisible.set(false);
-    this.submitted.set(false);
+    this.ticketService.createTicket(dataToSend).subscribe({
+      next: () => {
+        this.showSuccess('Ticket creado correctamente.');
+        this.loadData();
+        this.dialogVisible.set(false);
+      },
+      error: () => this.showError('Error al guardar el ticket.')
+    });
   }
 
-  /**
-   * Ver detalle del ticket
-   */
-  viewDetail(ticket: Ticket): void {
-    this.router.navigate(['/dashboard/tickets', ticket.id]);
+  viewDetail(ticket: any): void {
+    this.router.navigate(['/dashboard/tickets', ticket.idTicket]);
   }
 
-  /**
-   * Obtener severidad del estado
-   */
-  getEstadoSeverity(estado: string): 'success' | 'info' | 'warn' | 'danger' {
-    const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'abierto': 'info',
-      'en_progreso': 'warn',
-      'resuelto': 'success',
-      'cerrado': 'danger'
-    };
+  getEstadoSeverity(estado: string): any {
+    const map: any = { 'abierto': 'info', 'en_progreso': 'warn', 'resuelto': 'success', 'cerrado': 'danger' };
     return map[estado] || 'info';
   }
 
-  /**
-   * Obtener severidad de la prioridad
-   */
-  getPrioridadSeverity(prioridad: string): 'success' | 'info' | 'warn' | 'danger' {
-    const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'baja': 'success',
-      'media': 'info',
-      'alta': 'warn',
-      'critica': 'danger'
-    };
+  getPrioridadSeverity(prioridad: string): any {
+    const map: any = { 'baja': 'success', 'media': 'info', 'alta': 'warn', 'critica': 'danger' };
     return map[prioridad] || 'info';
   }
 
-  /**
-   * Obtener label del estado
-   */
   getEstadoLabel(estado: string): string {
     const found = this.estadosOptions.find(e => e.value === estado);
     return found ? found.label : estado;
   }
 
-  /**
-   * Obtener label de la prioridad
-   */
   getPrioridadLabel(prioridad: string): string {
     const found = this.prioridadOptions.find(p => p.value === prioridad);
     return found ? found.label : prioridad;
   }
 
-  /**
-   * Obtener estadísticas de tickets
-   */
   getTicketsPorEstado() {
-    const abiertos = this.tickets().filter(t => t.estadoActual === 'abierto').length;
-    const enProgreso = this.tickets().filter(t => t.estadoActual === 'en_progreso').length;
-    const resueltos = this.tickets().filter(t => t.estadoActual === 'resuelto').length;
-    const cerrados = this.tickets().filter(t => t.estadoActual === 'cerrado').length;
-
-    return { abiertos, enProgreso, resueltos, cerrados };
-  }
-
-  /**
-   * Helpers privados
-   */
-  private emptyTicket(): Ticket {
+    const t = this.tickets();
     return {
-      id: 0,
-      titulo: '',
-      descripcion: '',
-      estadoActual: 'abierto',
-      asignadoA: '',
-      prioridad: 'media',
-      fechaCreacion: new Date(),
-      fechaLimite: new Date(),
-      comentarios: '',
-      historialCambios: []
+      abiertos: t.filter(x => x.estadoActual === 'abierto').length,
+      enProgreso: t.filter(x => x.estadoActual === 'en_progreso').length,
+      resueltos: t.filter(x => x.estadoActual === 'resuelto').length,
+      cerrados: t.filter(x => x.estadoActual === 'cerrado').length
     };
   }
 
-  private nextId(): number {
-    const ids = this.tickets().map(t => t.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
+  private emptyTicket() {
+    return { titulo: '', descripcion: '', estadoActual: 'abierto', idUsuarioAsignado: null, prioridad: 'media', fechaLimite: null };
   }
 
-  private showSuccess(msg: string): void {
-    this.successMessage.set(msg);
-    setTimeout(() => this.successMessage.set(''), 3000);
-  }
-
-  private showError(msg: string): void {
-    this.errorMessage.set(msg);
-    setTimeout(() => this.errorMessage.set(''), 3000);
-  }
+  private showSuccess(msg: string) { this.successMessage.set(msg); setTimeout(() => this.successMessage.set(''), 3000); }
+  private showError(msg: string) { this.errorMessage.set(msg); setTimeout(() => this.errorMessage.set(''), 3000); }
 }

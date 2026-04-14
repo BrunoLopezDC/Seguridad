@@ -1,7 +1,7 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DatePipe, CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
@@ -13,12 +13,17 @@ import { TagModule } from 'primeng/tag';
 import { TimelineModule } from 'primeng/timeline';
 import { MessageModule } from 'primeng/message';
 
+// Servicios
+import { TicketService } from '../../../../../core/services/ticket.service';
+import { UserService } from '../../../../../core/services/user.service';
+
 interface Ticket {
   id: number;
   titulo: string;
   descripcion: string;
   estadoActual: string;
   asignadoA: string;
+  idUsuarioAsignado?: number;
   prioridad: string;
   fechaCreacion: Date;
   fechaLimite: Date;
@@ -36,29 +41,24 @@ interface HistorialCambio {
 
 interface SelectOption {
   label: string;
-  value: string;
+  value: any;
 }
 
 @Component({
   selector: 'app-ticket-detail',
+  standalone: true,
   imports: [
-    FormsModule,
-    DatePipe,
-    CardModule,
-    InputTextModule,
-    Textarea,
-    FloatLabelModule,
-    ButtonModule,
-    SelectModule,
-    DatePickerModule,
-    TagModule,
-    TimelineModule,
-    MessageModule
+    CommonModule, FormsModule, DatePipe, CardModule, InputTextModule,
+    Textarea, FloatLabelModule, ButtonModule, SelectModule,
+    DatePickerModule, TagModule, TimelineModule, MessageModule
   ],
   templateUrl: './ticket-detail.component.html',
   styleUrl: './ticket-detail.component.css'
 })
 export class TicketDetailComponent implements OnInit {
+
+  private ticketService = inject(TicketService);
+  private userService = inject(UserService);
 
   ticket = signal<Ticket | null>(null);
   isEditing = signal<boolean>(false);
@@ -82,12 +82,7 @@ export class TicketDetailComponent implements OnInit {
     { label: 'Crítica', value: 'critica' }
   ];
 
-  usuariosOptions: SelectOption[] = [
-    { label: 'Juan Pérez', value: 'Juan Pérez' },
-    { label: 'María García', value: 'María García' },
-    { label: 'Carlos López', value: 'Carlos López' }
-  ];
-
+  usuariosOptions: SelectOption[] = [];
   minDate = new Date();
 
   constructor(
@@ -99,58 +94,43 @@ export class TicketDetailComponent implements OnInit {
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.loadTicket(id);
+    this.loadData(id);
   }
 
-  private loadTicket(id: number): void {
-    // TODO: cuando integres backend, hacer llamada al servicio
-    // Por ahora simulamos datos
-    const mockTicket: Ticket = {
-      id,
-      titulo: 'Error en login',
-      descripcion: 'Los usuarios no pueden iniciar sesión desde la versión 2.0',
-      estadoActual: 'en_progreso',
-      asignadoA: 'Juan Pérez',
-      prioridad: 'alta',
-      fechaCreacion: new Date('2026-03-01'),
-      fechaLimite: new Date('2026-03-10'),
-      comentarios: 'Revisar el servicio de autenticación OAuth',
-      historialCambios: [
-        {
-          fecha: new Date('2026-03-01T10:30:00'),
-          campo: 'Estado',
-          valorAnterior: 'Abierto',
-          valorNuevo: 'En Progreso',
-          usuario: 'Admin Sistema'
-        },
-        {
-          fecha: new Date('2026-03-02T14:15:00'),
-          campo: 'Asignado a',
-          valorAnterior: 'Sin asignar',
-          valorNuevo: 'Juan Pérez',
-          usuario: 'Admin Sistema'
-        },
-        {
-          fecha: new Date('2026-03-03T09:00:00'),
-          campo: 'Prioridad',
-          valorAnterior: 'Media',
-          valorNuevo: 'Alta',
-          usuario: 'María García'
-        }
-      ]
-    };
+  private loadData(id: number): void {
+    // Cargar opciones de usuarios para el selector
+    this.userService.getUsers().subscribe(users => {
+      setTimeout(() => {
+        this.usuariosOptions = users.map(u => ({ label: u.nombreCompleto, value: u.idUsuario }));
+      }, 0);
+    });
 
-    this.ticket.set(mockTicket);
-  }
-
-  private showSuccess(msg: string): void {
-    this.successMessage.set(msg);
-    setTimeout(() => this.successMessage.set(''), 3000);
-  }
-
-  private showError(msg: string): void {
-    this.errorMessage.set(msg);
-    setTimeout(() => this.errorMessage.set(''), 3000);
+    // Cargar datos del ticket
+    this.ticketService.getTicketById(id).subscribe({
+      next: (dbTicket) => {
+        const mappedTicket: Ticket = {
+          id: dbTicket.idTicket,
+          titulo: dbTicket.titulo,
+          descripcion: dbTicket.descripcion,
+          estadoActual: dbTicket.estadoActual,
+          asignadoA: dbTicket.asignadoA || 'Sin asignar',
+          idUsuarioAsignado: dbTicket.idUsuarioAsignado ? Number(dbTicket.idUsuarioAsignado) : undefined,
+          prioridad: dbTicket.prioridad,
+          fechaCreacion: new Date(dbTicket.fechaCreacion),
+          fechaLimite: dbTicket.fechaLimite ? new Date(dbTicket.fechaLimite) : new Date(),
+          comentarios: dbTicket.comentarios || '',
+          historialCambios: (dbTicket.historial || []).map((h: any) => ({
+            fecha: new Date(h.fechaCambio),
+            campo: h.campoModificado,
+            valorAnterior: h.valorAnterior,
+            valorNuevo: h.valorNuevo,
+            usuario: h.modificador?.nombreCompleto || 'Sistema'
+          }))
+        };
+        this.ticket.set(mappedTicket);
+      },
+      error: () => this.goBack()
+    });
   }
 
   enableEdit(): void {
@@ -170,94 +150,57 @@ export class TicketDetailComponent implements OnInit {
   saveChanges(): void {
     this.submitted.set(true);
 
-    if (!this.editableTicket) return;
-
-    if (!this.editableTicket.titulo.trim() || !this.editableTicket.descripcion.trim()) {
-      this.showError('Completa los campos obligatorios.');
+    if (!this.editableTicket || !this.editableTicket.titulo.trim() || !this.editableTicket.descripcion.trim()) {
       return;
     }
 
-    const original = this.ticket();
-    if (!original) return;
-
-    // Registrar cambios en historial
-    const cambios: HistorialCambio[] = [];
-    const usuario = 'Admin Sistema'; // TODO: obtener del servicio de auth
-
-    if (original.estadoActual !== this.editableTicket.estadoActual) {
-      cambios.push({
-        fecha: new Date(),
-        campo: 'Estado',
-        valorAnterior: this.getEstadoLabel(original.estadoActual),
-        valorNuevo: this.getEstadoLabel(this.editableTicket.estadoActual),
-        usuario
-      });
-    }
-
-    if (original.prioridad !== this.editableTicket.prioridad) {
-      cambios.push({
-        fecha: new Date(),
-        campo: 'Prioridad',
-        valorAnterior: this.getPrioridadLabel(original.prioridad),
-        valorNuevo: this.getPrioridadLabel(this.editableTicket.prioridad),
-        usuario
-      });
-    }
-
-    if (original.asignadoA !== this.editableTicket.asignadoA) {
-      cambios.push({
-        fecha: new Date(),
-        campo: 'Asignado a',
-        valorAnterior: original.asignadoA || 'Sin asignar',
-        valorNuevo: this.editableTicket.asignadoA || 'Sin asignar',
-        usuario
-      });
-    }
-
-    // Actualizar ticket con nuevo historial
-    const updatedTicket: Ticket = {
-      ...this.editableTicket,
-      historialCambios: [...cambios, ...original.historialCambios]
+    const id = this.editableTicket.id;
+    const body = {
+      titulo: this.editableTicket.titulo,
+      descripcion: this.editableTicket.descripcion,
+      estadoActual: this.editableTicket.estadoActual,
+      prioridad: this.editableTicket.prioridad,
+      idUsuarioAsignado: this.editableTicket.idUsuarioAsignado || null,
+      fechaLimite: this.editableTicket.fechaLimite,
+      comentarios: this.editableTicket.comentarios,
+      // Enviamos el ID del usuario que edita para que el historial lo registre
+      idUsuarioModificador: 3 // Cambiar por el ID del usuario logueado en el futuro
     };
 
-    this.ticket.set(updatedTicket);
-    this.isEditing.set(false);
-    this.submitted.set(false);
-    this.editableTicket = null;
-    this.showSuccess('Ticket actualizado correctamente.');
+    this.ticketService.updateTicket(id, body).subscribe({
+      next: () => {
+        this.showSuccess('Ticket actualizado correctamente.');
+        this.isEditing.set(false);
+        this.submitted.set(false);
+        this.loadData(id); 
+      },
+      error: () => {
+        this.showError('Error al guardar cambios.');
+        this.submitted.set(false);
+      }
+    });
   }
 
-  goBack(): void {
-    this.router.navigate(['/dashboard/tickets']);
-  }
+  goBack(): void { this.router.navigate(['/dashboard/tickets']); }
 
-  getEstadoSeverity(estado: string): 'success' | 'info' | 'warn' | 'danger' {
-    const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'abierto': 'info',
-      'en_progreso': 'warn',
-      'resuelto': 'success',
-      'cerrado': 'danger'
-    };
+  private showSuccess(msg: string) { this.successMessage.set(msg); setTimeout(() => this.successMessage.set(''), 3000); }
+  private showError(msg: string) { this.errorMessage.set(msg); setTimeout(() => this.errorMessage.set(''), 3000); }
+
+  getEstadoSeverity(estado: string): any {
+    const map: any = { 'abierto': 'info', 'en_progreso': 'warn', 'resuelto': 'success', 'cerrado': 'danger' };
     return map[estado] || 'info';
   }
 
-  getPrioridadSeverity(prioridad: string): 'success' | 'info' | 'warn' | 'danger' {
-    const map: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
-      'baja': 'success',
-      'media': 'info',
-      'alta': 'warn',
-      'critica': 'danger'
-    };
+  getPrioridadSeverity(prioridad: string): any {
+    const map: any = { 'baja': 'success', 'media': 'info', 'alta': 'warn', 'critica': 'danger' };
     return map[prioridad] || 'info';
   }
 
   getEstadoLabel(estado: string): string {
-    const found = this.estadosOptions.find(e => e.value === estado);
-    return found ? found.label : estado;
+    return this.estadosOptions.find(e => e.value === estado)?.label || estado;
   }
 
   getPrioridadLabel(prioridad: string): string {
-    const found = this.prioridadOptions.find(p => p.value === prioridad);
-    return found ? found.label : prioridad;
+    return this.prioridadOptions.find(p => p.value === prioridad)?.label || prioridad;
   }
 }

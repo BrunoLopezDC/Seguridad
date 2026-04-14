@@ -4,13 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
-import { PermissionService } from '../../../core/services/permission.service';
-
-interface Credentials {
-  email: string;
-  password: string;
-  role: 'admin' | 'user';
-}
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -30,15 +24,11 @@ export class LoginComponent {
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
   submitted = signal<boolean>(false);
-
-  private readonly VALID_CREDENTIALS: Credentials[] = [
-    { email: 'admin@seguridad.com', password: 'Admin@12345', role: 'admin' },
-    { email: 'usuario@seguridad.com', password: 'User@12345!', role: 'user' }
-  ];
+  isLoading = signal<boolean>(false);
 
   constructor(
     private readonly router: Router,
-    private readonly permissionService: PermissionService
+    private readonly authService: AuthService 
   ) {}
 
   onSubmit(): void {
@@ -51,23 +41,25 @@ export class LoginComponent {
       return;
     }
 
-    const found = this.VALID_CREDENTIALS.find(
-      cred => cred.email === this.email().trim() && cred.password === this.password()
-    );
+    this.isLoading.set(true);
 
-    if (!found) {
-      this.errorMessage.set('Credenciales incorrectas. Intenta de nuevo.');
-      return;
-    }
-
-    // ✅ ACTUALIZAR el usuario actual en PermissionService
-    this.permissionService.setCurrentUser(found.email);
-
-    this.successMessage.set('Inicio de sesión exitoso. Redirigiendo...');
-
-    // TODO: reemplazar con servicio de auth al integrar backend
-    setTimeout(() => {
-      this.router.navigate(['/dashboard']);
-    }, 1000);
+    this.authService.login(this.email().trim(), this.password()).subscribe({
+      next: (res) => {
+        this.isLoading.set(false);
+        this.successMessage.set('Inicio de sesión exitoso. Redirigiendo...');
+        
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 1000);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        if (err.status === 401) {
+          this.errorMessage.set('Credenciales incorrectas. Intenta de nuevo.');
+        } else {
+          this.errorMessage.set('Error de conexión con el servidor.');
+        }
+      }
+    });
   }
 }

@@ -8,7 +8,7 @@
     label="Volver"
     icon="pi pi-arrow-left"
     severity="secondary"
-    [outlined]="true"
+    [text]="true"
     (onClick)="goBack()"
   ></p-button>
 </div>
@@ -22,26 +22,25 @@
 
 @if (!group()) {
   <p-card styleClass="table-card">
-    <div class="empty-table">
-      <i class="pi pi-spin pi-spinner"></i>
-      <span>Cargando grupo...</span>
+    <div class="empty-state">
+      <i class="pi pi-spin pi-spinner loading-icon"></i>
+      <p>Cargando grupo...</p>
     </div>
   </p-card>
 
 } @else if (!hasAccess()) {
   <p-card styleClass="table-card">
-    <div class="empty-table">
+    <div class="empty-state">
       <i class="pi pi-lock"></i>
-      <span>No tienes permisos para gestionar este grupo.</span>
+      <p>No tienes permisos para gestionar este grupo.</p>
     </div>
   </p-card>
 
 } @else {
 
-  <!-- Info del grupo -->
   <p-card styleClass="table-card">
     <div class="group-info-header">
-      <div>
+      <div class="info-text">
         <h2>{{ group()!.name }}</h2>
         <p>{{ group()!.description || 'Sin descripción' }}</p>
       </div>
@@ -60,10 +59,9 @@
     </div>
   </p-card>
 
-  <!-- Miembros -->
   <p-card styleClass="table-card">
     <div class="members-header">
-      <div>
+      <div class="info-text">
         <h2>Usuarios del grupo</h2>
         <p>{{ members().length }} miembro(s) registrado(s)</p>
       </div>
@@ -82,7 +80,7 @@
       [paginator]="true"
       [rows]="5"
       [rowsPerPageOptions]="[5, 10, 20]"
-      styleClass="p-datatable-striped"
+      styleClass="p-datatable-sm modern-table p-datatable-striped"
       responsiveLayout="scroll"
     >
       <ng-template #header>
@@ -91,33 +89,34 @@
           <th>Correo</th>
           <th>Rol</th>
           <th>Fecha de ingreso</th>
-          <th>Acciones</th>
+          <th class="text-center">Acciones</th>
         </tr>
       </ng-template>
 
       <ng-template #body let-member>
-        <tr>
+        <tr class="table-row-hover">
           <td>
             <div class="member-user">
-              <p-avatar [label]="getInitials(member.name)" shape="circle"></p-avatar>
-              <span>{{ member.name }}</span>
+              <p-avatar [label]="getInitials(member.name)" shape="circle" styleClass="member-avatar"></p-avatar>
+              <strong class="user-title">{{ member.name }}</strong>
             </div>
           </td>
-          <td>{{ member.email }}</td>
+          <td class="text-muted">{{ member.email }}</td>
           <td>
             <p-tag
               [value]="getRoleLabel(member.role)"
               [severity]="getRoleSeverity(member.role)"
+              styleClass="role-tag"
             ></p-tag>
           </td>
-          <td>{{ member.joinedAt | date:'dd/MM/yyyy' }}</td>
-          <td>
+          <td class="text-muted">{{ member.joinedAt | date:'dd/MM/yyyy' }}</td>
+          <td class="text-center">
             @if (permissions.groupDelete && member.role !== 'admin') {
               <p-button
                 icon="pi pi-trash"
                 severity="danger"
                 [rounded]="true"
-                [outlined]="true"
+                [text]="true"
                 (onClick)="confirmRemoveMember(member)"
                 pTooltip="Eliminar del grupo"
               ></p-button>
@@ -128,22 +127,24 @@
 
       <ng-template #empty>
         <tr>
-          <td colspan="5" class="empty-table">
-            <i class="pi pi-inbox"></i>
-            <span>No hay usuarios en este grupo.</span>
+          <td colspan="5">
+            <div class="empty-state">
+              <i class="pi pi-users"></i>
+              <p>No hay usuarios en este grupo.</p>
+            </div>
           </td>
         </tr>
       </ng-template>
     </p-table>
   </p-card>
 
-  <!-- Dialog: Editar grupo -->
   <p-dialog
     header="Editar grupo"
     [(visible)]="settingsDialogVisible"
     [modal]="true"
     [style]="{ width: '450px' }"
     [draggable]="false"
+    styleClass="modern-dialog"
   >
     <div class="dialog-form">
       <div class="field">
@@ -193,13 +194,13 @@
     </ng-template>
   </p-dialog>
 
-  <!-- Dialog: Añadir miembro -->
   <p-dialog
     header="Añadir usuario al grupo"
     [(visible)]="addMemberDialogVisible"
     [modal]="true"
     [style]="{ width: '450px' }"
     [draggable]="false"
+    styleClass="modern-dialog"
   >
     <div class="dialog-form">
       <div class="field">

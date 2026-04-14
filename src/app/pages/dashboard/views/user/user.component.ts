@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
@@ -14,8 +14,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { Router } from '@angular/router';
 import { PermissionService } from '../../../../core/services/permission.service';
-import { UserPermissions } from '../../../../core/mocks/auth.mock';
+import { UserService } from '../../../../core/services/user.service'; // <-- 1. Importamos tu nuevo servicio
 
+// Mantenemos tu interfaz intacta para que el HTML no se rompa
 interface User {
   id: number;
   name: string;
@@ -48,12 +49,11 @@ interface RoleOption {
   templateUrl: './user.component.html',
   styleUrl: './user.component.css'
 })
-export class UserComponent {
+export class UserComponent implements OnInit { // <-- 2. Agregamos OnInit
 
-  users = signal<User[]>([
-    { id: 1, name: 'Admin Sistema', email: 'admin@seguridad.com', role: 'admin' },
-    { id: 2, name: 'Usuario Demo', email: 'usuario@seguridad.com', role: 'user' }
-  ]);
+  // 3. Inicializamos la lista vacía (¡Adiós a los datos falsos!)
+  users = signal<User[]>([]);
+  isLoading = signal<boolean>(false); // <-- Señal para saber si estamos cargando datos
 
   roles: RoleOption[] = [
     { label: 'Usuario', value: 'user' },
@@ -72,13 +72,45 @@ export class UserComponent {
   constructor(
     private readonly confirmationService: ConfirmationService,
     private readonly router: Router,
-    private readonly permissionService: PermissionService
+    private readonly permissionService: PermissionService,
+    private readonly userService: UserService // <-- 4. Inyectamos el servicio
   ) {}
+
+  // 5. Al iniciar la pantalla, vamos a buscar los usuarios reales
+  ngOnInit(): void {
+    this.loadRealUsers();
+  }
+
+  /**
+   * Carga los usuarios desde PostgreSQL
+   */
+  loadRealUsers(): void {
+    this.isLoading.set(true);
+    this.userService.getUsers().subscribe({
+      next: (dbUsers) => {
+        // Mapeamos lo que viene de la BD a la interfaz de tu tabla
+        const mappedUsers: User[] = dbUsers.map(u => ({
+          id: u.idUsuario,
+          name: u.nombreCompleto,
+          email: u.correoElectronico,
+          role: u.departamento === 'IT' || u.idUsuario === 1 ? 'admin' : 'user' // Lógica rápida visual
+        }));
+        
+        this.users.set(mappedUsers);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error(err);
+        this.showError('Error al cargar la lista de usuarios desde el servidor.');
+        this.isLoading.set(false);
+      }
+    });
+  }
 
   /**
    * Getter de permisos
    */
-  get permissions(): UserPermissions {
+  get permissions(): any {
     return this.permissionService.getPermissions();
   }
 
@@ -104,11 +136,6 @@ export class UserComponent {
     return { id: 0, name: '', email: '', role: 'user' };
   }
 
-  private nextId(): number {
-    const ids = this.users().map(u => u.id);
-    return ids.length ? Math.max(...ids) + 1 : 1;
-  }
-
   private showSuccess(msg: string): void {
     this.successMessage.set(msg);
     setTimeout(() => this.successMessage.set(''), 3000);
@@ -120,7 +147,7 @@ export class UserComponent {
   }
 
   /**
-   * CRUD operations
+   * CRUD operations (Aún en memoria local, luego los conectaremos al POST/PUT/DELETE)
    */
   openNew(): void {
     if (!this.canCreateUser()) {
@@ -163,16 +190,15 @@ export class UserComponent {
       this.users.update(list =>
         list.map(u => u.id === this.currentUser.id ? { ...this.currentUser } : u)
       );
-      this.showSuccess('Usuario actualizado correctamente.');
+      this.showSuccess('Usuario actualizado correctamente (Solo en vista por ahora).');
     } else {
       if (!this.canCreateUser()) {
         this.showError('No tienes permiso para crear usuarios.');
         return;
       }
 
-      const newUser: User = { ...this.currentUser, id: this.nextId() };
-      this.users.update(list => [...list, newUser]);
-      this.showSuccess('Usuario creado correctamente.');
+      // El registro real debería ir por el auth/register, por ahora simulamos visualmente
+      this.showError('Para crear usuarios reales, usa el formulario de registro externo.');
     }
 
     this.dialogVisible.set(false);
@@ -193,8 +219,9 @@ export class UserComponent {
       rejectLabel: 'Cancelar',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
+        // En el futuro aquí llamaremos a this.userService.deleteUser(user.id)
         this.users.update(list => list.filter(u => u.id !== user.id));
-        this.showSuccess('Usuario eliminado correctamente.');
+        this.showSuccess('Usuario eliminado de la vista.');
       }
     });
   }

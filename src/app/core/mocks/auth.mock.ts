@@ -48,7 +48,7 @@ export const MOCK_USERS: MockUser[] = [
     name: 'Usuario Demo',
     permissions: {
       // Grupo
-      groupAdd: false,
+      groupAdd: true,
       groupEdit: false,
       groupDelete: false,
       // Ticket
@@ -56,12 +56,11 @@ export const MOCK_USERS: MockUser[] = [
       ticketEdit: true,
       ticketDelete: false,
       // Usuario
-      userCreate: false,
+      userCreate: true,
       userEdit: false,
       userDelete: false
     }
   }
 ];
 
-// Usuario actualmente autenticado (simulado)
 export const CURRENT_USER_EMAIL = 'usuario@seguridad.com';

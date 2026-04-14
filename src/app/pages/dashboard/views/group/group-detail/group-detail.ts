@@ -15,7 +15,8 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { PermissionService } from '../../../../../core/services/permission.service';
-import { UserPermissions } from '../../../../../core/mocks/auth.mock';
+import { GroupService } from '../../../../../core/services/group.service';
+import { UserService } from '../../../../../core/services/user.service'; // <-- 1. Importamos UserService
 
 interface GroupMember {
   id: number;
@@ -63,46 +64,29 @@ export class GroupDetailComponent implements OnInit {
   settingsDialogVisible = false;
   addMemberDialogVisible = false;
   submitted = false;
+  isLoading = signal<boolean>(false);
 
   editedGroup: GroupInfo = { id: 0, name: '', description: '' };
   newMemberEmail = '';
-
-  // Datos simulados de grupos
-  private groupsData: GroupInfo[] = [
-    { id: 1, name: 'Administradores', description: 'Grupo con acceso total' },
-    { id: 2, name: 'Soporte', description: 'Atención de incidencias' },
-    { id: 3, name: 'Desarrollo', description: 'Equipo técnico' }
-  ];
-
-  // Miembros por grupo
-  private membersByGroupId: Record<number, GroupMember[]> = {
-    1: [
-      { id: 1, name: 'Admin Sistema', email: 'admin@seguridad.com', role: 'admin', joinedAt: new Date('2025-06-15') },
-      { id: 2, name: 'Usuario Demo', email: 'usuario@seguridad.com', role: 'member', joinedAt: new Date('2025-08-20') }
-    ],
-    2: [
-      { id: 3, name: 'María García', email: 'maria@seguridad.com', role: 'admin', joinedAt: new Date('2026-01-10') },
-      { id: 4, name: 'Carlos Ruiz', email: 'carlos@seguridad.com', role: 'member', joinedAt: new Date('2026-01-12') }
-    ],
-    3: [
-      { id: 5, name: 'Ana López', email: 'ana@seguridad.com', role: 'admin', joinedAt: new Date('2026-02-01') }
-    ]
-  };
 
   constructor(
     private readonly confirmationService: ConfirmationService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly permissionService: PermissionService
+    private readonly permissionService: PermissionService,
+    private readonly groupService: GroupService,
+    private readonly userService: UserService // <-- 2. Inyectamos UserService
   ) {}
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      this.loadGroup(Number(params['id']));
+      const groupId = Number(params['id']);
+      this.loadRealGroup(groupId);
+      this.loadGroupMembers(groupId); // <-- 3. Llamamos a la carga de miembros reales
     });
   }
 
-  get permissions(): UserPermissions {
+  get permissions(): any {
     return this.permissionService.getPermissions();
   }
 
@@ -110,16 +94,60 @@ export class GroupDetailComponent implements OnInit {
     return this.permissionService.hasAnyPermission('groupAdd', 'groupEdit', 'groupDelete');
   }
 
-  private loadGroup(id: number): void {
-    const found = this.groupsData.find(g => g.id === id);
+private loadRealGroup(id: number): void {
+    this.isLoading.set(true);
+    this.groupService.getGroupById(id).subscribe({
+      next: (dbGroup) => {
+        // 1. Cargamos la info del grupo
+        this.group.set({
+          id: dbGroup.idGrupo,
+          name: dbGroup.nombreGrupo,
+          description: dbGroup.descripcion || 'Sin descripción'
+        });
 
-    if (!found) {
-      this.router.navigate(['/dashboard/group']);
-      return;
-    }
+        // 2. Mapeamos los miembros que ya vienen incluidos en dbGroup
+        // Asumiendo que tu backend devuelve un arreglo llamado 'miembros' o similar
+        if (dbGroup.miembros) {
+          const mappedMembers: GroupMember[] = dbGroup.miembros.map((m: any) => ({
+            id: m.usuario.idUsuario,
+            name: m.usuario.nombreCompleto,
+            email: m.usuario.correoElectronico,
+            role: m.usuario.departamento === 'IT' ? 'admin' : 'member',
+            joinedAt: new Date(m.fechaAsignacion)
+          }));
+          this.members.set(mappedMembers);
+        }
 
-    this.group.set({ ...found });
-    this.members.set([...(this.membersByGroupId[id] ?? [])]);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error al cargar grupo', err);
+        this.router.navigate(['/dashboard/group']);
+      }
+    });
+  }
+
+  // <-- 4. Carga REAL de miembros usando tu UserService
+  private loadGroupMembers(groupId: number): void {
+    this.userService.getUsers().subscribe({
+      next: (allUsers) => {
+        // Filtramos para obtener solo los usuarios asignados a este grupo
+        // (Ajusta la propiedad 'idGrupo' según cómo lo devuelva tu backend en el JSON)
+        const groupUsers = allUsers.filter(u => u.idGrupo === groupId);
+
+        const mappedMembers: GroupMember[] = groupUsers.map(u => ({
+          id: u.idUsuario,
+          name: u.nombreCompleto,
+          email: u.correoElectronico,
+          // Lógica básica para el rol visual: Si es de IT lo marcamos admin, si no, miembro.
+          role: u.departamento === 'IT' ? 'admin' : 'member', 
+          joinedAt: u.fechaCreacion ? new Date(u.fechaCreacion) : new Date()
+        }));
+
+        this.members.set(mappedMembers);
+      },
+      error: (err) => console.error('Error al cargar miembros del grupo', err)
+    });
   }
 
   private nextMemberId(): number {
@@ -157,10 +185,18 @@ export class GroupDetailComponent implements OnInit {
       return;
     }
 
-    this.group.set({ ...this.editedGroup });
-    this.settingsDialogVisible = false;
-    this.submitted = false;
-    this.showSuccess('Configuración actualizada correctamente.');
+    this.groupService.updateGroup(this.editedGroup.id, this.editedGroup.name, this.editedGroup.description).subscribe({
+      next: () => {
+        this.group.set({ ...this.editedGroup });
+        this.settingsDialogVisible = false;
+        this.submitted = false;
+        this.showSuccess('Configuración actualizada correctamente en la BD.');
+      },
+      error: (err) => {
+        console.error('Error al actualizar', err);
+        this.showError('Ocurrió un error al guardar los cambios.');
+      }
+    });
   }
 
   openAddMember(): void {
@@ -169,42 +205,33 @@ export class GroupDetailComponent implements OnInit {
     this.addMemberDialogVisible = true;
   }
 
+  // La lógica de AGREGAR miembros la dejamos visual por ahora, como pediste
   addMember(): void {
     this.submitted = true;
 
     if (!this.newMemberEmail.trim()) {
-      this.showError('El correo es obligatorio.');
-      return;
+      this.showError('El correo es obligatorio.'); return;
     }
-
     if (!this.isValidEmail(this.newMemberEmail)) {
-      this.showError('Ingresa un correo válido.');
-      return;
+      this.showError('Ingresa un correo válido.'); return;
     }
 
-    const exists = this.members().some(
-      m => m.email.toLowerCase() === this.newMemberEmail.toLowerCase()
-    );
-
+    const exists = this.members().some(m => m.email.toLowerCase() === this.newMemberEmail.toLowerCase());
     if (exists) {
-      this.showError('Ese usuario ya pertenece al grupo.');
-      return;
+      this.showError('Ese usuario ya pertenece al grupo.'); return;
     }
 
     const newMember: GroupMember = {
-      id: this.nextMemberId(),
-      name: 'Nuevo Usuario',
-      email: this.newMemberEmail,
-      role: 'member',
-      joinedAt: new Date()
+      id: this.nextMemberId(), name: 'Nuevo Usuario', email: this.newMemberEmail, role: 'member', joinedAt: new Date()
     };
 
     this.members.update(list => [...list, newMember]);
     this.addMemberDialogVisible = false;
     this.submitted = false;
-    this.showSuccess('Usuario agregado correctamente.');
+    this.showSuccess('Usuario agregado.');
   }
 
+  // La lógica de ELIMINAR miembros la dejamos visual por ahora
   confirmRemoveMember(member: GroupMember): void {
     if (member.role === 'admin') {
       this.showError('No se puede eliminar al administrador del grupo.');
@@ -220,7 +247,7 @@ export class GroupDetailComponent implements OnInit {
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
         this.members.update(list => list.filter(m => m.id !== member.id));
-        this.showSuccess('Usuario eliminado del grupo.');
+        this.showSuccess('Usuario eliminado.');
       }
     });
   }

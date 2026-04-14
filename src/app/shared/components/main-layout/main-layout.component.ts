@@ -31,7 +31,7 @@ export class MainLayoutComponent {
   navItems = [
     { label: 'Usuarios', icon: 'pi pi-users',   route: '/dashboard/user' },
     { label: 'Grupos',   icon: 'pi pi-sitemap', route: '/dashboard/group' },
-    { label: 'Tickets',  icon: 'pi pi-ticket',  route: '/dashboard/tickets' },
+    { label: 'Dashboard',  icon: 'pi pi-ticket',  route: '/dashboard/tickets' },
 
   ];
 

@@ -1,8 +1,26 @@
+:host {
+  /* ==================== PALETA DE COLORES (Suavizada) ==================== */
+  --bg-app: transparent;
+  --bg-card: #f8fafc;
+  --bg-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  
+  --text-title: #0f172a;
+  --text-body: #334155;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+
+  --primary-color: #4f46e5;
+  --primary-light: #e0e7ff;
+}
+
+/* ==================== HEADER ==================== */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
   gap: 1rem;
 }
 
@@ -10,88 +28,216 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 0.4rem 0;
+  color: var(--text-title);
+  margin: 0 0 0.2rem 0;
+  letter-spacing: -0.025em;
 }
 
-.header-left h1 i { color: #667eea; }
+.header-left h1 i { color: var(--primary-color); }
+.header-left p { color: var(--text-muted); margin: 0; font-size: 0.95rem; }
 
-.header-left p {
-  color: #6b7280;
-  margin: 0;
-  font-size: 0.9rem;
-}
-
+/* ==================== TARJETAS ==================== */
 :host ::ng-deep .table-card {
-  border-radius: 1rem;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 0 3px rgba(0,0,0,0.02);
+  background: var(--bg-card);
   margin-bottom: 1.5rem;
+  transition: box-shadow 0.3s ease;
 }
 
+:host ::ng-deep .p-card-body { padding: 1.5rem; }
+
+/* ==================== ENCABEZADOS DE SECCIÓN ==================== */
 .group-info-header,
 .members-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.group-info-header h2,
-.members-header h2 {
-  margin: 0 0 0.3rem 0;
-  color: #1a1a2e;
-  font-size: 1.2rem;
+.info-text h2 {
+  margin: 0 0 0.2rem 0;
+  color: var(--text-title);
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
-.group-info-header p,
-.members-header p {
+.info-text p {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
+.action-buttons { display: flex; gap: 0.5rem; align-items: center; }
+
+/* ==================== USUARIOS Y AVATARES ==================== */
+.member-user { display: flex; align-items: center; gap: 0.75rem; }
+
+:host ::ng-deep .member-avatar {
+  background: linear-gradient(135deg, var(--primary-color), #7c3aed) !important;
+  color: white !important;
+  font-weight: 600;
+  font-size: 0.85rem;
+  width: 32px; height: 32px;
 }
 
-.member-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+/* ==================== TABLA MODERNIZADA ==================== */
+:host ::ng-deep .modern-table .p-datatable-thead > tr > th {
+  background-color: var(--bg-hover);
+  color: var(--text-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
-:host ::ng-deep .member-user .p-avatar {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+:host ::ng-deep .modern-table .p-datatable-tbody > tr > td { 
+  padding: 1rem; 
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-body);
 }
 
-.empty-table {
-  text-align: center;
-  padding: 2rem !important;
-  color: #9ca3af;
+.table-row-hover { transition: background-color 0.2s; }
+.table-row-hover:hover { background-color: var(--border-color) !important; }
+
+.user-title { color: var(--text-title); font-weight: 600; }
+.text-muted { color: var(--text-muted); font-size: 0.9rem; }
+.text-center { text-align: center; justify-content: center; }
+
+:host ::ng-deep .role-tag { padding: 0.25rem 1rem; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* ==================== FIX: FORZAR TEMA SUAVE EN TABLA ==================== */
+:host ::ng-deep .modern-table,
+:host ::ng-deep .modern-table .p-datatable-wrapper,
+:host ::ng-deep .modern-table table { background-color: var(--bg-card) !important; }
+:host ::ng-deep .modern-table .p-datatable-tbody > tr { background-color: var(--bg-card) !important; }
+:host ::ng-deep .modern-table.p-datatable-striped .p-datatable-tbody > tr:nth-child(even) { background-color: var(--bg-hover) !important; }
+:host ::ng-deep .modern-table .p-datatable-empty-message td { background-color: var(--bg-card) !important; }
+
+/* ==================== FIX: PAGINADOR ==================== */
+:host ::ng-deep .p-paginator-bottom,
+:host ::ng-deep .p-paginator,
+:host ::ng-deep p-table .p-paginator {
+  background: var(--bg-card) !important;
+  background-color: var(--bg-card) !important;
+  border-top: 1px solid var(--border-color) !important;
+  padding: 1rem 0 0 0 !important;
+  color: var(--text-body) !important;
 }
 
-.empty-table i {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
+:host ::ng-deep .p-paginator .p-paginator-current { color: var(--text-muted) !important; background-color: transparent !important; }
+
+:host ::ng-deep .p-paginator .p-paginator-pages .p-paginator-page,
+:host ::ng-deep .p-paginator .p-paginator-first,
+:host ::ng-deep .p-paginator .p-paginator-prev,
+:host ::ng-deep .p-paginator .p-paginator-next,
+:host ::ng-deep .p-paginator .p-paginator-last {
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  transition: all 0.2s ease;
 }
 
-:host ::ng-deep .msg-banner {
-  margin-bottom: 1rem;
-  border-radius: 0.5rem;
+:host ::ng-deep .p-paginator .p-paginator-pages .p-paginator-page:not(.p-highlight):hover,
+:host ::ng-deep .p-paginator .p-paginator-first:not(.p-disabled):hover,
+:host ::ng-deep .p-paginator .p-paginator-prev:not(.p-disabled):hover,
+:host ::ng-deep .p-paginator .p-paginator-next:not(.p-disabled):hover,
+:host ::ng-deep .p-paginator .p-paginator-last:not(.p-disabled):hover {
+  background-color: var(--border-color) !important;
+  color: var(--text-title) !important;
 }
+
+:host ::ng-deep .p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+  font-weight: 700 !important;
+}
+
+/* ==================== FIX: DROPDOWN DE FILAS ==================== */
+:host ::ng-deep .p-paginator .p-select,
+:host ::ng-deep .p-paginator .p-dropdown {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 0.5rem !important;
+}
+
+:host ::ng-deep .p-paginator .p-select .p-select-label,
+:host ::ng-deep .p-paginator .p-dropdown .p-dropdown-label,
+:host ::ng-deep .p-paginator .p-select .p-select-dropdown,
+:host ::ng-deep .p-paginator .p-dropdown .p-dropdown-trigger { color: var(--text-body) !important; }
+
+:host ::ng-deep .p-select-panel,
+:host ::ng-deep .p-dropdown-panel {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+:host ::ng-deep .p-select-item,
+:host ::ng-deep .p-dropdown-item {
+  color: var(--text-body) !important;
+  background-color: transparent !important;
+  transition: all 0.2s ease;
+  padding: 0.75rem 1rem !important;
+}
+
+:host ::ng-deep .p-select-item:hover,
+:host ::ng-deep .p-dropdown-item:hover { background-color: var(--bg-hover) !important; color: var(--text-title) !important; }
+:host ::ng-deep .p-select-item.p-highlight,
+:host ::ng-deep .p-dropdown-item.p-highlight { background-color: var(--primary-light) !important; color: var(--primary-color) !important; font-weight: 600 !important; }
+
+/* ==================== ESTADOS VACÍOS Y CARGA ==================== */
+.empty-state { 
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 4rem 2rem; color: var(--text-light); text-align: center;
+}
+.empty-state i { font-size: 2.5rem; margin-bottom: 1rem; color: #cbd5e1; }
+.empty-state .loading-icon { color: var(--primary-color); }
+.empty-state p { font-size: 1rem; font-weight: 500; margin: 0; }
+
+/* ==================== MENSAJES ==================== */
+:host ::ng-deep .msg-banner { margin-bottom: 1.5rem; border-radius: 0.75rem; border-width: 0 0 0 6px; }
+
+
+/* ==================== DIALOG FORM (MODO OSCURO PREMIUM) ==================== */
+:host ::ng-deep .modern-dialog .p-dialog-header {
+  border-bottom: 1px solid #1e293b;
+  padding: 1.5rem;
+  background-color: #0f172a !important; /* Fondo del header casi negro */
+}
+:host ::ng-deep .modern-dialog .p-dialog-header .p-dialog-title {
+  font-weight: 700;
+  color: #f8fafc !important; /* Título en blanco */
+}
+:host ::ng-deep .modern-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background-color: #0f172a !important; /* Fondo del contenido */
+}
+:host ::ng-deep .modern-dialog .p-dialog-footer {
+  border-top: 1px solid #1e293b;
+  padding: 1.25rem 1.5rem;
+  background-color: #0f172a !important; /* Fondo del footer */
+}
+
+/* Ajuste del botón de cerrar (X) en el modal oscuro */
+:host ::ng-deep .modern-dialog .p-dialog-header-icon { color: #94a3b8 !important; }
+:host ::ng-deep .modern-dialog .p-dialog-header-icon:hover { color: #ffffff !important; background-color: #1e293b !important; }
 
 .dialog-form {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
-  padding: 1rem 0;
+  gap: 1.8rem; /* Separación ampliada para que los float labels respiren */
+  padding-top: 0.5rem;
 }
 
 .field {
@@ -100,17 +246,50 @@
   gap: 0.4rem;
 }
 
-.field input { width: 100%; }
+/* INPUTS OSCUROS */
+:host ::ng-deep .modern-dialog input { 
+  width: 100%; 
+  border-radius: 0.5rem; 
+  background-color: #1e293b !important; /* Fondo del input gris muy oscuro */
+  color: #f8fafc !important; /* Texto del input en blanco */
+  border: 1px solid #334155 !important; /* Borde sutil */
+}
+
+:host ::ng-deep .modern-dialog input:focus {
+  border-color: var(--primary-color) !important;
+}
+
+/* FLOAT LABELS MODO OSCURO */
+:host ::ng-deep .modern-dialog .p-floatlabel label {
+  color: #94a3b8 !important; /* Gris claro para el texto del label */
+  background-color: #0f172a !important; /* Fondo exacto al modal para tapar la línea del input */
+  padding: 0 0.3rem;
+  margin-left: -0.1rem;
+}
+
+:host ::ng-deep .modern-dialog .p-floatlabel:has(input:focus) label {
+  color: var(--primary-color) !important; /* Se pinta del color primario al hacer click */
+}
+
+/* Botón "Cancelar" en modo oscuro (para que no se pierda en el fondo) */
+:host ::ng-deep .modern-dialog .p-button-secondary.p-button-text {
+  color: #cbd5e1 !important;
+}
+:host ::ng-deep .modern-dialog .p-button-secondary.p-button-text:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
 
 .error-text {
   color: #ef4444;
   font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.2rem;
 }
 
-:host ::ng-deep .input-error {
-  border-color: #ef4444 !important;
-}
+:host ::ng-deep .input-error { border-color: #ef4444 !important; }
 
+/* ==================== RESPONSIVO ==================== */
 @media (max-width: 768px) {
   .page-header,
   .group-info-header,

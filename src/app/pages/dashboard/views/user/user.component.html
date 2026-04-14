@@ -13,7 +13,6 @@
   ></p-button>
 </div>
 
-<!-- Mensajes -->
 @if (successMessage()) {
   <p-message severity="success" [text]="successMessage()" styleClass="msg-banner" />
 }
@@ -21,14 +20,13 @@
   <p-message severity="error" [text]="errorMessage()" styleClass="msg-banner" />
 }
 
-<!-- Tabla -->
 <p-card styleClass="table-card">
   <p-table
     [value]="users()"
     [paginator]="true"
     [rows]="5"
     [rowsPerPageOptions]="[5, 10, 20]"
-    styleClass="p-datatable-striped"
+    styleClass="p-datatable-sm modern-table p-datatable-striped"
     responsiveLayout="scroll"
   >
     <ng-template #header>
@@ -37,19 +35,20 @@
         <th>Nombre</th>
         <th>Correo</th>
         <th>Rol</th>
-        <th>Acciones</th>
+        <th class="text-center">Acciones</th>
       </tr>
     </ng-template>
 
     <ng-template #body let-user>
-      <tr>
-        <td>{{ user.id }}</td>
-        <td>{{ user.name }}</td>
-        <td>{{ user.email }}</td>
+      <tr class="table-row-hover">
+        <td class="text-muted">#{{ user.id }}</td>
+        <td><strong class="user-title">{{ user.name }}</strong></td>
+        <td class="text-muted">{{ user.email }}</td>
         <td>
           <p-tag
             [value]="getRoleLabel(user.role)"
             [severity]="getRoleSeverity(user.role)"
+            styleClass="role-tag"
           ></p-tag>
         </td>
         <td>
@@ -58,7 +57,7 @@
               icon="pi pi-user"
               severity="secondary"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               (onClick)="viewProfile(user)"
               pTooltip="Ver perfil"
             ></p-button>
@@ -66,7 +65,7 @@
               icon="pi pi-pencil"
               severity="info"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               [disabled]="!canEditUser()"
               (onClick)="openEdit(user)"
               [pTooltip]="!canEditUser() ? 'No tienes permiso para editar' : 'Editar usuario'"
@@ -75,7 +74,7 @@
               icon="pi pi-trash"
               severity="danger"
               [rounded]="true"
-              [outlined]="true"
+              [text]="true"
               [disabled]="!canDeleteUser()"
               (onClick)="confirmDelete(user)"
               [pTooltip]="!canDeleteUser() ? 'No tienes permiso para eliminar' : 'Eliminar usuario'"
@@ -87,25 +86,26 @@
 
     <ng-template #empty>
       <tr>
-        <td colspan="5" class="empty-table">
-          <i class="pi pi-inbox"></i>
-          <span>No hay usuarios registrados.</span>
+        <td colspan="5">
+          <div class="empty-state">
+            <i class="pi pi-inbox"></i>
+            <p>No hay usuarios registrados.</p>
+          </div>
         </td>
       </tr>
     </ng-template>
   </p-table>
 </p-card>
 
-<!-- Dialog crear/editar -->
 <p-dialog
   [header]="isEditing() ? 'Editar usuario' : 'Nuevo usuario'"
   [(visible)]="dialogVisible"
   [modal]="true"
   [style]="{ width: '450px' }"
   [draggable]="false"
+  styleClass="modern-dialog"
 >
   <div class="dialog-form">
-
     <div class="field">
       <p-floatlabel variant="on">
         <input
@@ -152,7 +152,6 @@
         appendTo="body"
       />
     </div>
-
   </div>
 
   <ng-template #footer>
@@ -171,5 +170,4 @@
   </ng-template>
 </p-dialog>
 
-<!-- Confirm dialog -->
 <p-confirmdialog />
